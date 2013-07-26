@@ -1004,6 +1004,18 @@ public class CandlepinPoolManager implements PoolManager {
         @Override
         public void handlePostEntitlement(Consumer consumer, PoolHelper poolHelper,
             Entitlement entitlement) {
+
+            Pool entPool = entitlement.getPool();
+            String stackId = entPool.getProductAttributeValue("stacking_id");
+            if (stackId != null && !stackId.isEmpty()) {
+                Pool pool =
+                    poolCurator.getSubPoolForStackId(entitlement.getConsumer(), stackId);
+                if (pool != null) {
+                    poolRules.updatePoolFromStack(pool, consumer, stackId);
+                    poolCurator.merge(pool);
+                }
+            }
+
             enforcer.postEntitlement(consumer, poolHelper, entitlement);
         }
         @Override
