@@ -291,12 +291,12 @@ public class PoolRules {
             }
 
             // the pool should be updated to have the earliest start date.
-            if (nextStacked.getStartDate().before(startDate)) {
+            if (startDate == null || nextStacked.getStartDate().before(startDate)) {
                 startDate = nextStacked.getStartDate();
             }
 
             // The pool should be updated to have the latest end date.
-            if (nextStacked.getEndDate().after(endDate)) {
+            if (endDate == null || nextStacked.getEndDate().after(endDate)) {
                 endDate = nextStacked.getEndDate();
             }
 

@@ -561,6 +561,12 @@ public class PoolCurator extends AbstractHibernateCurator<Pool> {
             .add(Restrictions.and(Restrictions.isNotNull("sourceStackId"),
                                   Restrictions.eq("sourceStackId", stackId)))
             .add(Subqueries.exists(requiresHostCriteria));
-        return (Pool) getCount.uniqueResult();
+
+        try {
+            return (Pool) getCount.uniqueResult();
+        }
+        catch (Exception e) {
+            return null;
+        }
     }
 }
