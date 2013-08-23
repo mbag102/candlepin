@@ -222,12 +222,19 @@ define "candlepin" do
   package(:war, :id=>"candlepin").libs += artifacts(HSQLDB)
   package(:war, :id=>"candlepin").classes << generate
 
-  desc 'Print a list of dependencies'
+  desc 'Print a list of dependencies in ant format'
   task :antdeps do
     artifacts(compile_classpath).collect do |a|
-      jar = File.basename(a.to_s).sub!(/(.*)-\d.*.jar/, '\1')
+        jar = File.basename(a.to_s).sub!(/(.*)-\d.*.jar/, '\1')
       puts "<include name=\"**/#{jar}-*.jar\"/>"
     end
+  end
+
+  desc 'Print a /a/b/foo.jar:/blip/meh.jar style classpath'
+  task :cli_classpath do
+    classpath = compile.dependencies.inject("") {|a,c| a << "#{c}:"}
+    classpath << "#{Java.tools_jar}"
+    puts "#{classpath}"
   end
 
   desc "generate a .syntastic_class_path for vim/syntastic"
