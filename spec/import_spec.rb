@@ -116,9 +116,17 @@ describe 'Candlepin Import', :serial => true do
   end
 
   it 'should return a 409 on a duplicate import' do
-    lambda do
-      @cp.import(@import_owner['key'], @cp_export.export_filename)
-    end.should raise_exception RestClient::Conflict
+    exception = false
+    begin
+      @cp.import(@import_owner['key'], @cp_export_file)
+    rescue RestClient::Conflict => e
+      json = JSON.parse(e.http_body)
+      json["conflicts"].should have(1).things
+      json["conflicts"].include?("MANIFEST_SAME").should be_true
+      exception = true
+    end
+    exception.should be_true
+
   end
 
   it 'should create a FAILURE record on a duplicate import' do
