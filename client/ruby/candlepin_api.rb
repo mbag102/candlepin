@@ -324,6 +324,16 @@ class Candlepin
     get("/consumertypes/#{type_id}")
   end
 
+  def get_consumer_list(consumer_ids=[])
+    if !consumer_ids.empty?
+        method = "/consumers?"
+        consumer_ids.each do |uuid|
+            method << "uuid=#{uuid}&"
+        end
+    end
+    get(method)
+  end
+
   def get_scheduler_status()
     get("/jobs/scheduler")
   end
