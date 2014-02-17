@@ -27,6 +27,7 @@
 %define tomcat tomcat6
 %endif
 
+
 Name: candlepin
 Summary: Candlepin is an open source entitlement management system
 Group: System Environment/Daemons
@@ -42,7 +43,6 @@ BuildArch: noarch
 
 BuildRequires: java-devel >= 0:1.6.0
 BuildRequires: ant >= 0:1.7.0
-BuildRequires: ant-nodeps >= 0:1.7.0
 BuildRequires: gettext
 BuildRequires: selinux-policy-doc
 
@@ -63,15 +63,21 @@ BuildRequires: candlepin-scl
 BuildRequires: antlr >= 0:2.7.7
 BuildRequires: bouncycastle
 BuildRequires: hibernate4-core >= 0:4.2.5
+BuildRequires: hibernate4-entitymanager >= 0:4.2.5
 BuildRequires: hibernate4-c3p0 >= 0:4.2.5
+%if 0%{?rhel} >= 7
+BuildRequires: guava >= 0:13.0
+%else
+BuildRequires: google-collections >= 0:1.0
+BuildRequires: ant-nodeps >= 0:1.7.0
+%endif
+
 BuildRequires: javassist >= 3.12.0
 BuildRequires: commons-collections >= 3.1
 
 # for schema
-BuildRequires: hibernate4-entitymanager >= 0:4.2.5
 BuildRequires: hibernate3-commons-annotations >= 0:4.0.1
 
-BuildRequires: google-collections >= 0:1.0
 BuildRequires: resteasy >= 0:2.3.1
 BuildRequires: hornetq >= 0:2.3.5
 BuildRequires: google-guice >= 0:3.0
@@ -123,9 +129,17 @@ Requires: postgresql-jdbc
 # candlepin webapp requires
 Requires: antlr >= 0:2.7.7
 Requires: bouncycastle
+%if 0%{?rhel} >= 7
+Requires: hibernate4-core-eap6 >= 0:4.2.5
+Requires: hibernate4-entitymanager-eap6 >= 0:4.2.5
+Requires: hibernate4-c3p0-eap6 >= 0:4.2.5
+Requires: guava >= 0:13.0
+%else
 Requires: hibernate4-core >= 0:4.2.5
 Requires: hibernate4-entitymanager >= 0:4.2.5
 Requires: hibernate4-c3p0 >= 0:4.2.5
+Requires: google-collections >= 0:1.0
+%endif
 Requires: hibernate3-commons-annotations >= 0:4.0.1
 Requires: hibernate-jpa-2.0-api >= 0:1.0.1
 Requires: candlepin-scl
@@ -150,7 +164,6 @@ Requires: jakarta-commons-lang
 Requires: jakarta-commons-io
 Requires: apache-commons-codec
 Requires: jakarta-commons-httpclient
-Requires: google-collections >= 0:1.0
 Requires: apache-mime4j
 Requires: gettext-commons
 Requires: javamail
@@ -249,7 +262,7 @@ rm $RPM_BUILD_ROOT/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/*
 ant -Ddistlibdir=$RPM_BUILD_ROOT/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/ -Dscllibdir=%{scllibdir}/%{_datadir}/java/ initjars
 
 %endif
-ln -s /etc/candlepin/certs/keystore $RPM_BUILD_ROOT/%{_sysconfdir}/%{tomcat}/keystore
+lpache-commons-collections-3.2.1-19.el7n -s /etc/candlepin/certs/keystore $RPM_BUILD_ROOT/%{_sysconfdir}/%{tomcat}/keystore
 
 # devel
 install -d -m 755 $RPM_BUILD_ROOT/%{_datadir}/%{name}/lib/
