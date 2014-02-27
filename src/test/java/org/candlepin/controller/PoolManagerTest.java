@@ -143,8 +143,7 @@ public class PoolManagerTest {
         this.manager = spy(new CandlepinPoolManager(mockPoolCurator, mockSubAdapter,
             productCache, entCertAdapterMock, mockEventSink, eventFactory,
             mockConfig, enforcerMock, poolRulesMock, entitlementCurator,
-            consumerCuratorMock, certCuratorMock, complianceRules, envCurator,
-            autobindRules));
+            consumerCuratorMock, certCuratorMock, complianceRules, autobindRules));
 
         when(entCertAdapterMock.generateEntitlementCert(any(Entitlement.class),
             any(Subscription.class), any(Product.class))).thenReturn(
@@ -497,7 +496,7 @@ public class PoolManagerTest {
         bestPools.add(new PoolQuantity(pool1, 1));
         when(autobindRules.selectBestPools(any(Consumer.class), any(String[].class),
             any(List.class), any(ComplianceStatus.class), any(String.class),
-            any(Set.class)))
+            any(Set.class), eq(false)))
             .thenReturn(bestPools);
 
         List<Entitlement> e = manager.entitleByProducts(TestUtil.createConsumer(o),
@@ -649,7 +648,7 @@ public class PoolManagerTest {
         bestPools.add(new PoolQuantity(pool1, 1));
         when(autobindRules.selectBestPools(any(Consumer.class), any(String[].class),
             any(List.class), any(ComplianceStatus.class), any(String.class),
-            any(Set.class)))
+            any(Set.class), eq(false)))
             .thenReturn(bestPools);
 
         // Make the call but provide a null array of product IDs (simulates healing):
@@ -658,6 +657,6 @@ public class PoolManagerTest {
 
         verify(autobindRules).selectBestPools(any(Consumer.class), eq(installedPids),
             any(List.class), eq(mockCompliance), any(String.class),
-            any(Set.class));
+            any(Set.class), eq(false));
     }
 }

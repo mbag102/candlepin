@@ -26,7 +26,6 @@ import org.candlepin.model.EntitlementCertificate;
 import org.candlepin.model.EntitlementCertificateCurator;
 import org.candlepin.model.EntitlementCurator;
 import org.candlepin.model.Environment;
-import org.candlepin.model.EnvironmentCurator;
 import org.candlepin.model.FilterBuilder;
 import org.candlepin.model.Owner;
 import org.candlepin.model.Pool;
@@ -94,7 +93,6 @@ public class CandlepinPoolManager implements PoolManager {
     private EntitlementCertificateCurator entitlementCertificateCurator;
     private ComplianceRules complianceRules;
     private ProductCache productCache;
-    private EnvironmentCurator envCurator;
     private AutobindRules autobindRules;
 
     /**
@@ -112,7 +110,7 @@ public class CandlepinPoolManager implements PoolManager {
         EventFactory eventFactory, Config config, Enforcer enforcer,
         PoolRules poolRules, EntitlementCurator curator1, ConsumerCurator consumerCurator,
         EntitlementCertificateCurator ecC, ComplianceRules complianceRules,
-        EnvironmentCurator envCurator, AutobindRules autobindRules) {
+        AutobindRules autobindRules) {
 
         this.poolCurator = poolCurator;
         this.subAdapter = subAdapter;
@@ -127,7 +125,6 @@ public class CandlepinPoolManager implements PoolManager {
         this.entitlementCertificateCurator = ecC;
         this.complianceRules = complianceRules;
         this.productCache = productCache;
-        this.envCurator = envCurator;
         this.autobindRules = autobindRules;
     }
 
@@ -552,7 +549,9 @@ public class CandlepinPoolManager implements PoolManager {
             if (pool.hasProductAttribute("virt_limit") &&
                     !pool.getProductAttribute("virt_limit").getValue().equals("0")) {
                 for (String productId : productIds) {
-                    if (pool.provides(productId)) {
+                    // If this is a derived pool, we need to see if the derived product
+                    // provides anything for the guest, otherwise we use the parent.
+                    if (pool.providesDerived(productId)) {
                         providesProduct = true;
                         break;
                     }
@@ -585,7 +584,7 @@ public class CandlepinPoolManager implements PoolManager {
 
         List<PoolQuantity> enforced = autobindRules.selectBestPools(host,
             productIds, filteredPools, hostCompliance, serviceLevelOverride,
-            poolCurator.retrieveServiceLevelsForOwner(owner, true));
+            poolCurator.retrieveServiceLevelsForOwner(owner, true), true);
         return enforced;
     }
 
@@ -666,7 +665,7 @@ public class CandlepinPoolManager implements PoolManager {
 
         List<PoolQuantity> enforced = autobindRules.selectBestPools(consumer,
             productIds, filteredPools, compliance, serviceLevelOverride,
-            poolCurator.retrieveServiceLevelsForOwner(owner, true));
+            poolCurator.retrieveServiceLevelsForOwner(owner, true), false);
         return enforced;
     }
 
@@ -891,24 +890,6 @@ public class CandlepinPoolManager implements PoolManager {
         regenerateCertificatesOf(entsToRegen, lazy);
     }
 
-
-    /**
-     * Used to regenerate certificates affected by a mass content promotion/demotion.
-     *
-     * WARNING: can be quite expensive, currently we must look up all entitlements in the
-     * environment, all provided products for each entitlement, and check if any product
-     * provides any of the modified content set IDs.
-     *
-     * @param affectedContent List of content set IDs promoted/demoted.
-     */
-    @Override
-    @Transactional
-    public void regenerateCertificatesOf(Set<String> affectedContent, boolean lazy) {
-        for (Environment e : envCurator.listWithContent(affectedContent)) {
-            regenerateCertificatesOf(e, affectedContent, lazy);
-        }
-    }
-
     /**
      * @param e
      */
@@ -1000,12 +981,8 @@ public class CandlepinPoolManager implements PoolManager {
         Set<Pool> deletablePools = new HashSet<Pool>();
 
         for (Pool p : poolCurator.listBySourceEntitlement(entitlement)) {
-            Set<Entitlement> deletableEntitlements = new HashSet<Entitlement>();
             for (Entitlement e : p.getEntitlements()) {
-                deletableEntitlements.add(e);
-            }
-            for (Entitlement de : deletableEntitlements) {
-                this.revokeEntitlement(de);
+                this.revokeEntitlement(e);
             }
             deletablePools.add(p);
         }
@@ -1063,10 +1040,14 @@ public class CandlepinPoolManager implements PoolManager {
 
         log.info("Revoked entitlement: " + entitlement.getId());
 
-        // Check consumer's new compliance status and save:
-        ComplianceStatus compliance = complianceRules.getStatus(consumer, new Date());
-        consumer.setEntitlementStatus(compliance.getStatus());
-        consumerCurator.update(consumer);
+        // If we don't care about updating other entitlements based on this one, we probably
+        // don't care about updating compliance either.
+        if (regenModified) {
+            // Check consumer's new compliance status and save:
+            ComplianceStatus compliance = complianceRules.getStatus(consumer, new Date());
+            consumer.setEntitlementStatus(compliance.getStatus());
+            consumerCurator.update(consumer);
+        }
 
         sink.sendEvent(event);
     }
@@ -1087,6 +1068,10 @@ public class CandlepinPoolManager implements PoolManager {
             removeEntitlement(e, false);
             count++;
         }
+        // Rerun compliance after removing all entitlements
+        ComplianceStatus compliance = complianceRules.getStatus(consumer, new Date());
+        consumer.setEntitlementStatus(compliance.getStatus());
+        consumerCurator.update(consumer);
         return count;
     }
 

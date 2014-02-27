@@ -72,14 +72,14 @@ public class Entitler {
         Pool pool = poolManager.find(poolId);
         List<Entitlement> entitlementList = new LinkedList<Entitlement>();
 
-        if (log.isDebugEnabled() && pool != null) {
-            log.debug("pool: id[" + pool.getId() + "], consumed[" +
-                pool.getConsumed() + "], qty [" + pool.getQuantity() + "]");
-        }
-
         if (pool == null) {
             throw new BadRequestException(i18n.tr(
                 "Subscription pool {0} does not exist.", poolId));
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("pool: id[" + pool.getId() + "], consumed[" +
+                pool.getConsumed() + "], qty [" + pool.getQuantity() + "]");
         }
 
         // Attempt to create an entitlement:
@@ -245,14 +245,14 @@ public class Entitler {
         // If the consumer is a guest, and has a host, try to heal the host first
         if (consumer.hasFact("virt.uuid")) {
             String guestUuid = consumer.getFact("virt.uuid");
-            Consumer host = consumerCurator.getHost(guestUuid);
-            if (host != null && consumer.getOwner().equals(host.getOwner()) &&
-                    (force || host.isAutoheal())) {
+            Consumer host = consumerCurator.getHost(guestUuid, consumer.getOwner());
+            if (host != null && (force || host.isAutoheal())) {
                 log.info("Attempting to heal host machine with UUID " +
                     host.getUuid() + " for guest with UUID " + consumer.getUuid());
                 try {
                     List<Entitlement> hostEntitlements =
                         poolManager.entitleByProductsForHost(consumer, host, entitleDate);
+                    log.debug("Granted host {} entitlements", hostEntitlements.size());
                     sendEvents(hostEntitlements);
                 }
                 catch (Exception e) {

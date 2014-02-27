@@ -451,10 +451,13 @@ public class OwnerResource {
     @Path("{owner_key}/servicelevels")
     public Set<String> ownerServiceLevels(
         @PathParam("owner_key") @Verify(value = Owner.class,
-        subResource = SubResource.SERVICE_LEVELS) String ownerKey) {
+        subResource = SubResource.SERVICE_LEVELS) String ownerKey,
+        @QueryParam("exempt") @DefaultValue("false") String exempt) {
         Owner owner = findOwner(ownerKey);
 
-        return poolManager.retrieveServiceLevelsForOwner(owner, false);
+        // test is on the string "true" and is case insensitive.
+        return poolManager.retrieveServiceLevelsForOwner(owner,
+            Boolean.parseBoolean(exempt));
     }
 
     /**
@@ -1294,6 +1297,18 @@ public class OwnerResource {
         List<UpstreamConsumer> results = new ArrayList<UpstreamConsumer>(1);
         results.add(upstream);
         return results;
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{owner_key}/hypervisors")
+    public List<Consumer> getHypervisors(
+        @PathParam("owner_key") @Verify(Owner.class) String ownerKey,
+        @QueryParam("hypervisor_id") List<String> hypervisorIds) {
+        if (hypervisorIds == null || hypervisorIds.isEmpty()) {
+            return consumerCurator.getHypervisorsForOwner(ownerKey);
+        }
+        return consumerCurator.getHypervisorsBulk(hypervisorIds, ownerKey);
     }
 
     private void recordImportSuccess(Owner owner, Map data,
