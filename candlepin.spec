@@ -67,13 +67,14 @@ BuildRequires: hibernate4-entitymanager >= 0:4.2.5
 BuildRequires: hibernate4-c3p0 >= 0:4.2.5
 %if 0%{?rhel} >= 7
 BuildRequires: guava >= 0:13.0
+BuildRequires: apache-commons-collections
 %else
 BuildRequires: google-collections >= 0:1.0
 BuildRequires: ant-nodeps >= 0:1.7.0
+BuildRequires: commons-collections >= 3.1
 %endif
 
 BuildRequires: javassist >= 3.12.0
-BuildRequires: commons-collections >= 3.1
 
 # for schema
 BuildRequires: hibernate3-commons-annotations >= 0:4.0.1
@@ -130,16 +131,15 @@ Requires: postgresql-jdbc
 Requires: antlr >= 0:2.7.7
 Requires: bouncycastle
 %if 0%{?rhel} >= 7
-Requires: hibernate4-core-eap6 >= 0:4.2.5
-Requires: hibernate4-entitymanager-eap6 >= 0:4.2.5
-Requires: hibernate4-c3p0-eap6 >= 0:4.2.5
 Requires: guava >= 0:13.0
+Requires: apache-commons-collections
 %else
+Requires: google-collections >= 0:1.0
+Requires: commons-collections >= 3.1
+%endif
 Requires: hibernate4-core >= 0:4.2.5
 Requires: hibernate4-entitymanager >= 0:4.2.5
 Requires: hibernate4-c3p0 >= 0:4.2.5
-Requires: google-collections >= 0:1.0
-%endif
 Requires: hibernate3-commons-annotations >= 0:4.0.1
 Requires: hibernate-jpa-2.0-api >= 0:1.0.1
 Requires: candlepin-scl
@@ -168,7 +168,6 @@ Requires: apache-mime4j
 Requires: gettext-commons
 Requires: javamail
 Requires: javassist >= 3.12.0
-Requires: commons-collections >= 3.1
 Requires: jta
 %endif
 %define __jar_repack %{nil}
@@ -262,7 +261,7 @@ rm $RPM_BUILD_ROOT/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/*
 ant -Ddistlibdir=$RPM_BUILD_ROOT/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/ -Dscllibdir=%{scllibdir}/%{_datadir}/java/ initjars
 
 %endif
-lpache-commons-collections-3.2.1-19.el7n -s /etc/candlepin/certs/keystore $RPM_BUILD_ROOT/%{_sysconfdir}/%{tomcat}/keystore
+ln -s /etc/candlepin/certs/keystore $RPM_BUILD_ROOT/%{_sysconfdir}/%{tomcat}/keystore
 
 # devel
 install -d -m 755 $RPM_BUILD_ROOT/%{_datadir}/%{name}/lib/
