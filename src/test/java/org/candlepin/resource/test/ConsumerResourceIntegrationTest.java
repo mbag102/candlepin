@@ -129,7 +129,6 @@ public class ConsumerResourceIntegrationTest extends DatabaseTestFixture {
 
         pool = createPoolAndSub(owner, product, 10L,
             TestDateUtil.date(2010, 1, 1), TestDateUtil.date(2020, 12, 31));
-
     }
 
     @Test
@@ -559,7 +558,7 @@ public class ConsumerResourceIntegrationTest extends DatabaseTestFixture {
             null, null, this.entitlementCurator, null, null, null, null, null,
             null, null, null, null, this.poolManager, null, null, null,
             null, null, null, null, null, new CandlepinCommonTestConfig(), null, null,
-            null, null, null);
+            null, null, null, serviceLevelValidator);
 
         Response rsp = consumerResource.bind(
             consumer.getUuid(), pool.getId().toString(), null, 1, null,

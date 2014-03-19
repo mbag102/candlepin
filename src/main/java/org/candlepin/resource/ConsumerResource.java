@@ -14,99 +14,6 @@
  */
 package org.candlepin.resource;
 
-import org.candlepin.audit.Event;
-import org.candlepin.audit.EventAdapter;
-import org.candlepin.audit.EventFactory;
-import org.candlepin.audit.EventSink;
-import org.candlepin.auth.Access;
-import org.candlepin.auth.NoAuthPrincipal;
-import org.candlepin.auth.Principal;
-import org.candlepin.auth.SubResource;
-import org.candlepin.auth.UserPrincipal;
-import org.candlepin.auth.interceptor.SecurityHole;
-import org.candlepin.auth.interceptor.Verify;
-import org.candlepin.config.Config;
-import org.candlepin.config.ConfigProperties;
-import org.candlepin.controller.Entitler;
-import org.candlepin.controller.PoolManager;
-import org.candlepin.exceptions.BadRequestException;
-import org.candlepin.exceptions.CandlepinException;
-import org.candlepin.exceptions.ForbiddenException;
-import org.candlepin.exceptions.IseException;
-import org.candlepin.exceptions.NotFoundException;
-import org.candlepin.model.CdnCurator;
-import org.candlepin.model.CertificateSerialDto;
-import org.candlepin.model.Consumer;
-import org.candlepin.model.ConsumerCapability;
-import org.candlepin.model.ConsumerCurator;
-import org.candlepin.model.ConsumerInstalledProduct;
-import org.candlepin.model.ConsumerType;
-import org.candlepin.model.ConsumerType.ConsumerTypeEnum;
-import org.candlepin.model.activationkeys.ActivationKey;
-import org.candlepin.model.activationkeys.ActivationKeyContentOverride;
-import org.candlepin.model.activationkeys.ActivationKeyCurator;
-import org.candlepin.model.activationkeys.ActivationKeyPool;
-import org.candlepin.model.ConsumerContentOverride;
-import org.candlepin.model.ConsumerContentOverrideCurator;
-import org.candlepin.model.ConsumerTypeCurator;
-import org.candlepin.model.ContentCurator;
-import org.candlepin.model.DeleteResult;
-import org.candlepin.model.DeletedConsumer;
-import org.candlepin.model.DeletedConsumerCurator;
-import org.candlepin.model.DistributorVersion;
-import org.candlepin.model.DistributorVersionCapability;
-import org.candlepin.model.DistributorVersionCurator;
-import org.candlepin.model.Entitlement;
-import org.candlepin.model.EntitlementCertificate;
-import org.candlepin.model.EntitlementCurator;
-import org.candlepin.model.Environment;
-import org.candlepin.model.EnvironmentCurator;
-import org.candlepin.model.EventCurator;
-import org.candlepin.model.GuestId;
-import org.candlepin.model.HypervisorId;
-import org.candlepin.model.IdentityCertificate;
-import org.candlepin.model.Owner;
-import org.candlepin.model.OwnerCurator;
-import org.candlepin.model.Pool;
-import org.candlepin.model.PoolQuantity;
-import org.candlepin.model.Product;
-import org.candlepin.model.Release;
-import org.candlepin.model.User;
-import org.candlepin.paging.Page;
-import org.candlepin.paging.PageRequest;
-import org.candlepin.paging.Paginate;
-import org.candlepin.pinsetter.tasks.EntitleByProductsJob;
-import org.candlepin.pinsetter.tasks.EntitlerJob;
-import org.candlepin.policy.js.compliance.ComplianceRules;
-import org.candlepin.policy.js.compliance.ComplianceStatus;
-import org.candlepin.policy.js.consumer.ConsumerRules;
-import org.candlepin.policy.js.quantity.QuantityRules;
-import org.candlepin.policy.js.quantity.SuggestedQuantity;
-import org.candlepin.resource.util.CalculatedAttributesUtil;
-import org.candlepin.resource.util.ConsumerInstalledProductEnricher;
-import org.candlepin.resource.util.ResourceDateParser;
-import org.candlepin.service.EntitlementCertServiceAdapter;
-import org.candlepin.service.IdentityCertServiceAdapter;
-import org.candlepin.service.ProductServiceAdapter;
-import org.candlepin.service.SubscriptionServiceAdapter;
-import org.candlepin.service.UserServiceAdapter;
-import org.candlepin.sync.ExportCreationException;
-import org.candlepin.sync.Exporter;
-import org.candlepin.util.Util;
-import org.candlepin.version.CertVersionConflictException;
-
-import com.google.inject.Inject;
-import com.google.inject.persist.Transactional;
-
-import org.apache.commons.lang.StringUtils;
-import org.jboss.resteasy.annotations.providers.jaxb.Wrapped;
-import org.jboss.resteasy.plugins.providers.atom.Feed;
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
-import org.quartz.JobDetail;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xnap.commons.i18n.I18n;
-
 import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -136,6 +43,99 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import org.apache.commons.lang.StringUtils;
+import org.candlepin.audit.Event;
+import org.candlepin.audit.EventAdapter;
+import org.candlepin.audit.EventFactory;
+import org.candlepin.audit.EventSink;
+import org.candlepin.auth.Access;
+import org.candlepin.auth.NoAuthPrincipal;
+import org.candlepin.auth.Principal;
+import org.candlepin.auth.SubResource;
+import org.candlepin.auth.UserPrincipal;
+import org.candlepin.auth.interceptor.SecurityHole;
+import org.candlepin.auth.interceptor.Verify;
+import org.candlepin.config.Config;
+import org.candlepin.config.ConfigProperties;
+import org.candlepin.controller.Entitler;
+import org.candlepin.controller.PoolManager;
+import org.candlepin.exceptions.BadRequestException;
+import org.candlepin.exceptions.CandlepinException;
+import org.candlepin.exceptions.ForbiddenException;
+import org.candlepin.exceptions.IseException;
+import org.candlepin.exceptions.NotFoundException;
+import org.candlepin.model.CdnCurator;
+import org.candlepin.model.CertificateSerialDto;
+import org.candlepin.model.Consumer;
+import org.candlepin.model.ConsumerCapability;
+import org.candlepin.model.ConsumerContentOverride;
+import org.candlepin.model.ConsumerContentOverrideCurator;
+import org.candlepin.model.ConsumerCurator;
+import org.candlepin.model.ConsumerInstalledProduct;
+import org.candlepin.model.ConsumerType;
+import org.candlepin.model.ConsumerType.ConsumerTypeEnum;
+import org.candlepin.model.ConsumerTypeCurator;
+import org.candlepin.model.ContentCurator;
+import org.candlepin.model.DeleteResult;
+import org.candlepin.model.DeletedConsumer;
+import org.candlepin.model.DeletedConsumerCurator;
+import org.candlepin.model.DistributorVersion;
+import org.candlepin.model.DistributorVersionCapability;
+import org.candlepin.model.DistributorVersionCurator;
+import org.candlepin.model.Entitlement;
+import org.candlepin.model.EntitlementCertificate;
+import org.candlepin.model.EntitlementCurator;
+import org.candlepin.model.Environment;
+import org.candlepin.model.EnvironmentCurator;
+import org.candlepin.model.EventCurator;
+import org.candlepin.model.GuestId;
+import org.candlepin.model.HypervisorId;
+import org.candlepin.model.IdentityCertificate;
+import org.candlepin.model.Owner;
+import org.candlepin.model.OwnerCurator;
+import org.candlepin.model.Pool;
+import org.candlepin.model.PoolQuantity;
+import org.candlepin.model.Product;
+import org.candlepin.model.Release;
+import org.candlepin.model.User;
+import org.candlepin.model.activationkeys.ActivationKey;
+import org.candlepin.model.activationkeys.ActivationKeyContentOverride;
+import org.candlepin.model.activationkeys.ActivationKeyCurator;
+import org.candlepin.model.activationkeys.ActivationKeyPool;
+import org.candlepin.paging.Page;
+import org.candlepin.paging.PageRequest;
+import org.candlepin.paging.Paginate;
+import org.candlepin.pinsetter.tasks.EntitleByProductsJob;
+import org.candlepin.pinsetter.tasks.EntitlerJob;
+import org.candlepin.policy.js.compliance.ComplianceRules;
+import org.candlepin.policy.js.compliance.ComplianceStatus;
+import org.candlepin.policy.js.consumer.ConsumerRules;
+import org.candlepin.policy.js.quantity.QuantityRules;
+import org.candlepin.policy.js.quantity.SuggestedQuantity;
+import org.candlepin.resource.util.CalculatedAttributesUtil;
+import org.candlepin.resource.util.ConsumerInstalledProductEnricher;
+import org.candlepin.resource.util.ResourceDateParser;
+import org.candlepin.service.EntitlementCertServiceAdapter;
+import org.candlepin.service.IdentityCertServiceAdapter;
+import org.candlepin.service.ProductServiceAdapter;
+import org.candlepin.service.SubscriptionServiceAdapter;
+import org.candlepin.service.UserServiceAdapter;
+import org.candlepin.sync.ExportCreationException;
+import org.candlepin.sync.Exporter;
+import org.candlepin.util.ServiceLevelValidator;
+import org.candlepin.util.Util;
+import org.candlepin.version.CertVersionConflictException;
+import org.jboss.resteasy.annotations.providers.jaxb.Wrapped;
+import org.jboss.resteasy.plugins.providers.atom.Feed;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
+import org.quartz.JobDetail;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xnap.commons.i18n.I18n;
+
+import com.google.inject.Inject;
+import com.google.inject.persist.Transactional;
 
 /**
  * API Gateway for Consumers
@@ -175,6 +175,7 @@ public class ConsumerResource {
     private QuantityRules quantityRules;
     private CalculatedAttributesUtil calculatedAttributesUtil;
     private ConsumerContentOverrideCurator consumerContentOverrideCurator;
+    private ServiceLevelValidator serviceLevelValidator;
 
     @Inject
     public ConsumerResource(ConsumerCurator consumerCurator,
@@ -195,7 +196,8 @@ public class ConsumerResource {
         Config config, QuantityRules quantityRules,
         ContentCurator contentCurator,
         CdnCurator cdnCurator, CalculatedAttributesUtil calculatedAttributesUtil,
-        ConsumerContentOverrideCurator consumerContentOverrideCurator) {
+        ConsumerContentOverrideCurator consumerContentOverrideCurator,
+        ServiceLevelValidator serviceLevelValidator) {
 
         this.consumerCurator = consumerCurator;
         this.consumerTypeCurator = consumerTypeCurator;
@@ -229,6 +231,7 @@ public class ConsumerResource {
         this.quantityRules = quantityRules;
         this.calculatedAttributesUtil = calculatedAttributesUtil;
         this.consumerContentOverrideCurator = consumerContentOverrideCurator;
+        this.serviceLevelValidator = serviceLevelValidator;
     }
 
     /**
@@ -464,7 +467,7 @@ public class ConsumerResource {
             hvsrId.setConsumer(consumer);
         }
 
-        checkServiceLevel(owner, consumer.getServiceLevel());
+        serviceLevelValidator.validate(owner, consumer.getServiceLevel());
 
         try {
             consumer = consumerCurator.create(consumer);
@@ -539,14 +542,10 @@ public class ConsumerResource {
 
     private void handleActivationKeyServiceLevel(Consumer consumer,
             String level, Owner owner) {
-        if (!StringUtils.isBlank(level) &&
-            !poolManager.retrieveServiceLevelsForOwner(owner, false).contains(level)) {
-            throw new BadRequestException(
-                i18n.tr("The activation key service level ''{0}'' " +
-                    "is not available to owner {1}",
-                    level, owner.getKey()));
+        if (level != null) {
+            serviceLevelValidator.validate(owner, level);
+            consumer.setServiceLevel(level);
         }
-        consumer.setServiceLevel(level);
     }
 
     /**
@@ -635,23 +634,6 @@ public class ConsumerResource {
             // this is a bouncycastle restriction
             throw new BadRequestException(
                 i18n.tr("System name cannot begin with # character"));
-        }
-    }
-
-    private void checkServiceLevel(Owner owner, String serviceLevel)
-        throws BadRequestException {
-        if (serviceLevel != null &&
-            !serviceLevel.trim().equals("")) {
-            for (String level : poolManager.retrieveServiceLevelsForOwner(owner, false)) {
-                if (serviceLevel.equalsIgnoreCase(level)) {
-                    return;
-                }
-            }
-            throw new BadRequestException(
-                i18n.tr(
-                    "Service level ''{0}'' is not available " +
-                    "to units of organization {1}.",
-                    serviceLevel, owner.getKey()));
         }
     }
 
@@ -897,7 +879,7 @@ public class ConsumerResource {
             if (log.isDebugEnabled()) {
                 log.debug("   Updating consumer service level setting.");
             }
-            checkServiceLevel(toUpdate.getOwner(), level);
+            serviceLevelValidator.validate(toUpdate.getOwner(), level);
             toUpdate.setServiceLevel(level);
             changesMade = true;
         }
@@ -1560,7 +1542,7 @@ public class ConsumerResource {
         List<PoolQuantity> dryRunPools = new ArrayList<PoolQuantity>();
 
         try {
-            checkServiceLevel(consumer.getOwner(), serviceLevel);
+            serviceLevelValidator.validate(consumer.getOwner(), serviceLevel);
             dryRunPools = entitler.getDryRun(consumer, serviceLevel);
         }
         catch (ForbiddenException fe) {

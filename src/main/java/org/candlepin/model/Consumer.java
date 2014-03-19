@@ -187,7 +187,7 @@ public class Consumer extends AbstractHibernateObject implements Linkable, Owned
         this.installedProducts = new HashSet<ConsumerInstalledProduct>();
         this.guestIds = new ArrayList<GuestId>();
         this.autoheal = true;
-        this.serviceLevel = "";
+        this.serviceLevel = null;
     }
 
     public Consumer() {
