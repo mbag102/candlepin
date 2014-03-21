@@ -101,7 +101,7 @@ describe 'Standalone Virt-Limit Subscriptions', :type => :virt do
         {'guestId' => 'testing2', 'attributes' => {'active' => '1', 'virtWhoType'=> 'libvirt'}},
         {'guestId' => 'testing1', 'attributes' => {'active' => '1', 'virtWhoType'=> 'libvirt'}}]})
     @guest1_client.consume_pool(guest_pool_with_arch['id'], {:quantity => 1})
-    compliance = @cp.get_compliance(consumer_id=@guest1_client.uuid)
+    compliance = @guest1_client.get_compliance(consumer_id=@guest1_client.uuid)
     compliance.reasons.length.should == 2
     reasonKeys = compliance.reasons.map {|r| r['key']}
     (reasonKeys.include? 'GUEST_LIMIT').should == true
@@ -151,6 +151,18 @@ describe 'Standalone Virt-Limit Subscriptions', :type => :virt do
 
     # Host 1 stops reporting guest:
     @host1_client.update_consumer({:guestIds => []})
+
+    # Entitlement should not be gone:
+    @guest1_client.list_entitlements.length.should == 1
+  end
+
+  it 'should not revoke guest entitlements when host removes guest ID through new api' do
+    @guest1_client.consume_pool(@guest_pool['id'], {:quantity => 1})
+    @guest1_client.list_entitlements.length.should == 1
+
+    # Host 1 stops reporting guest:
+    @uuid = @host1['uuid']
+    @host1_client.delete_guestid(@uuid1)
 
     # Entitlement should not be gone:
     @guest1_client.list_entitlements.length.should == 1
