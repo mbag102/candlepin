@@ -66,11 +66,13 @@ BuildRequires: hibernate4-core >= 0:4.2.5
 BuildRequires: hibernate4-entitymanager >= 0:4.2.5
 BuildRequires: hibernate4-c3p0 >= 0:4.2.5
 %if 0%{?rhel} >= 7
+BuildRequires: glassfish-jaxb
 BuildRequires: guava >= 0:13.0
 BuildRequires: apache-commons-collections
 %else
-BuildRequires: google-collections >= 0:1.0
 BuildRequires: ant-nodeps >= 0:1.7.0
+BuildRequires: jaxb-impl
+BuildRequires: google-collections >= 0:1.0
 BuildRequires: commons-collections >= 3.1
 %endif
 
@@ -98,7 +100,6 @@ BuildRequires: jackson-module-jaxb-annotations >= %{jackson_version}
 BuildRequires: jakarta-commons-httpclient
 BuildRequires: hibernate-jpa-2.0-api >= 1.0.1
 BuildRequires: netty
-BuildRequires: jaxb-impl
 BuildRequires: jms >= 0:1.1
 BuildRequires: oauth >= 20100601-4
 BuildRequires: slf4j-api >= 0:1.7.5
@@ -131,9 +132,11 @@ Requires: postgresql-jdbc
 Requires: antlr >= 0:2.7.7
 Requires: bouncycastle
 %if 0%{?rhel} >= 7
+Requires: glassfish-jaxb
 Requires: guava >= 0:13.0
 Requires: apache-commons-collections
 %else
+Requires: jaxb-impl
 Requires: google-collections >= 0:1.0
 Requires: commons-collections >= 3.1
 %endif
@@ -155,7 +158,6 @@ Requires: hornetq >= 0:2.3.5
 Requires: netty
 Requires: oauth >= 20100601-4
 Requires: logback-classic
-Requires: jaxb-impl
 Requires: scannotation
 Requires: slf4j-api >= 0:1.7.5-4
 # apache-mime4j uses commons-logging, so we have to provide a slf4j bridge
@@ -222,7 +224,7 @@ SELinux policy module supporting candlepin
 mkdir -p %{distlibdir}
 
 %build
-ant -Dlibdir=%{libdir} -Ddistlibdir=%{distlibdir} -Dscllibdir=%{scllibdir}/%{_datadir}/java/ clean %{usecpdeps} package
+ant -Ddepsfile=deps/el%{?rhel}.txt -Dlibdir=%{libdir} -Ddistlibdir=%{distlibdir} -Dscllibdir=%{scllibdir}/%{_datadir}/java/ clean %{usecpdeps} package
 
 cd selinux
 for selinuxvariant in %{selinux_variants}
@@ -258,7 +260,7 @@ unzip target/%{name}-%{version}.war -d $RPM_BUILD_ROOT/%{_localstatedir}/lib/%{t
 %if !0%{?reqcpdeps}
 #remove the copied jars and resymlink
 rm $RPM_BUILD_ROOT/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/*.jar
-ant -Ddistlibdir=$RPM_BUILD_ROOT/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/ -Dscllibdir=%{scllibdir}/%{_datadir}/java/ initjars
+ant -Ddepsfile=deps/el%{?rhel}.txt -Ddistlibdir=$RPM_BUILD_ROOT/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/ -Dscllibdir=%{scllibdir}/%{_datadir}/java/ initjars
 
 %endif
 ln -s /etc/candlepin/certs/keystore $RPM_BUILD_ROOT/%{_sysconfdir}/%{tomcat}/keystore
