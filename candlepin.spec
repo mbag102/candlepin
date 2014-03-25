@@ -10,7 +10,7 @@
 # This is technically just a temporary directory to get us through
 # the compilation phase. It is later destroyed and the spec file will
 # re-call initjars with the correct destination for both tomcat and jboss.
-%global distlibdir $RPM_BUILD_ROOT/%{_tmppath}/distlibdir/
+%global distlibdir %{buildroot}/%{_tmppath}/distlibdir/
 %global libdir %{_datadir}/java/
 
 # We require the Candlepin SCL, but because we are not an SCL package
@@ -236,62 +236,62 @@ done
 cd -
 
 %install
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 # Create the directory structure required to lay down our files
 # common
-install -d -m 755 $RPM_BUILD_ROOT/%{_sysconfdir}/%{name}/certs/
-install -d -m 755 $RPM_BUILD_ROOT/%{_sysconfdir}/%{name}/certs/upstream/
+install -d -m 755 %{buildroot}/%{_sysconfdir}/%{name}/certs/
+install -d -m 755 %{buildroot}/%{_sysconfdir}/%{name}/certs/upstream/
 install -m 644 conf/candlepin-redhat-ca.crt %{buildroot}%{_sysconfdir}/%{name}/certs/upstream/
 install -d 755 %{buildroot}%{_sysconfdir}/logrotate.d/
 install -m 644 conf/logrotate.conf %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
-install -d -m 755 $RPM_BUILD_ROOT/%{_sysconfdir}/%{name}/
-install -d -m 755 $RPM_BUILD_ROOT/%{_datadir}/%{name}/
-install -m 755 code/setup/cpsetup $RPM_BUILD_ROOT/%{_datadir}/%{name}/cpsetup
-install -m 755 code/setup/cpdb $RPM_BUILD_ROOT/%{_datadir}/%{name}/cpdb
-touch $RPM_BUILD_ROOT/%{_sysconfdir}/%{name}/%{name}.conf
+install -d -m 755 %{buildroot}/%{_sysconfdir}/%{name}/
+install -d -m 755 %{buildroot}/%{_datadir}/%{name}/
+install -m 755 code/setup/cpsetup %{buildroot}/%{_datadir}/%{name}/cpsetup
+install -m 755 code/setup/cpdb %{buildroot}/%{_datadir}/%{name}/cpdb
+touch %{buildroot}/%{_sysconfdir}/%{name}/%{name}.conf
 
 # tomcat
-install -d -m 755 $RPM_BUILD_ROOT/%{_localstatedir}/lib/%{tomcat}/webapps/
-install -d -m 755 $RPM_BUILD_ROOT/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/
-install -d -m 755 $RPM_BUILD_ROOT/%{_sysconfdir}/%{tomcat}/
-unzip target/%{name}-%{version}.war -d $RPM_BUILD_ROOT/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/
+install -d -m 755 %{buildroot}/%{_localstatedir}/lib/%{tomcat}/webapps/
+install -d -m 755 %{buildroot}/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/
+install -d -m 755 %{buildroot}/%{_sysconfdir}/%{tomcat}/
+unzip target/%{name}-%{version}.war -d %{buildroot}/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/
 
 
 %if !0%{?reqcpdeps}
 #remove the copied jars and resymlink
-rm $RPM_BUILD_ROOT/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/*.jar
-ant -Ddepsfile=deps/el%{?rhel}.txt -Ddistlibdir=$RPM_BUILD_ROOT/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/ -Dscllibdir=%{scllibdir}/%{_datadir}/java/ initjars
+rm %{buildroot}/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/*.jar
+ant -Ddepsfile=deps/el%{?rhel}.txt -Ddistlibdir=%{buildroot}/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/ -Dscllibdir=%{scllibdir}/%{_datadir}/java/ initjars
 
 %endif
-ln -s /etc/candlepin/certs/keystore $RPM_BUILD_ROOT/%{_sysconfdir}/%{tomcat}/keystore
+ln -s /etc/candlepin/certs/keystore %{buildroot}/%{_sysconfdir}/%{tomcat}/keystore
 
 # devel
-install -d -m 755 $RPM_BUILD_ROOT/%{_datadir}/%{name}/lib/
-install -m 644 target/%{name}-api-%{version}.jar $RPM_BUILD_ROOT/%{_datadir}/%{name}/lib/
+install -d -m 755 %{buildroot}/%{_datadir}/%{name}/lib/
+install -m 644 target/%{name}-api-%{version}.jar %{buildroot}/%{_datadir}/%{name}/lib/
 
 # jar
-install -d -m 755 $RPM_BUILD_ROOT/usr/share/java
-install -m 644 target/%{name}-certgen-%{version}.jar $RPM_BUILD_ROOT/usr/share/java/
-ln -s /usr/share/java/candlepin-certgen-%{version}.jar $RPM_BUILD_ROOT/usr/share/java/candlepin-certgen.jar
+install -d -m 755 %{buildroot}/usr/share/java
+install -m 644 target/%{name}-certgen-%{version}.jar %{buildroot}/usr/share/java/
+ln -s /usr/share/java/candlepin-certgen-%{version}.jar %{buildroot}/usr/share/java/candlepin-certgen.jar
 
 # /var/lib dir for hornetq state
-install -d -m 755 $RPM_BUILD_ROOT/%{_localstatedir}/lib/%{name}
+install -d -m 755 %{buildroot}/%{_localstatedir}/lib/%{name}
 
-install -d -m 755 $RPM_BUILD_ROOT/%{_localstatedir}/log/%{name}
-install -d -m 755 $RPM_BUILD_ROOT/%{_localstatedir}/cache/%{name}
+install -d -m 755 %{buildroot}/%{_localstatedir}/log/%{name}
+install -d -m 755 %{buildroot}/%{_localstatedir}/cache/%{name}
 
 cd selinux
 for selinuxvariant in %{selinux_variants}
 do
-  install -d $RPM_BUILD_ROOT/%{_datadir}/selinux/${selinuxvariant}
+  install -d %{buildroot}/%{_datadir}/selinux/${selinuxvariant}
   install -p -m 644 %{modulename}.pp.${selinuxvariant} \
-    $RPM_BUILD_ROOT/%{_datadir}/selinux/${selinuxvariant}/%{modulename}.pp
+    %{buildroot}/%{_datadir}/selinux/${selinuxvariant}/%{modulename}.pp
 done
 cd -
-/usr/sbin/hardlink -cv $RPM_BUILD_ROOT/%{_datadir}/selinux
+/usr/sbin/hardlink -cv %{buildroot}/%{_datadir}/selinux
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 rm -rf %{_tmppath}/distlibdir
 
 %post selinux
