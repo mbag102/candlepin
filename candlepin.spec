@@ -10,21 +10,21 @@
 # This is technically just a temporary directory to get us through
 # the compilation phase. It is later destroyed and the spec file will
 # re-call initjars with the correct destination for both tomcat and jboss.
-%define distlibdir $RPM_BUILD_ROOT/%{_tmppath}/distlibdir/
-%define libdir %{_datadir}/java/
+%global distlibdir $RPM_BUILD_ROOT/%{_tmppath}/distlibdir/
+%global libdir %{_datadir}/java/
 
 # We require the Candlepin SCL, but because we are not an SCL package
 # ourselves, we need to point to deps in the expected location.
-%define scllibdir /opt/rh/candlepin-scl/root
+%global scllibdir /opt/rh/candlepin-scl/root
 
 %if 0%{?fedora}
-%define reqcpdeps 1
+%global reqcpdeps 1
 %endif
 
 %if 0%{?fedora} >= 19
-%define tomcat tomcat
+%global tomcat tomcat
 %else
-%define tomcat tomcat6
+%global tomcat tomcat6
 %endif
 
 
@@ -48,12 +48,12 @@ BuildRequires: selinux-policy-doc
 
 
 %if 0%{?reqcpdeps}
-%define distlibdir %{_datadir}/%{name}/lib/
-%define libdir %{_datadir}/%{name}/lib/
-%define usecpdeps "usecpdeps"
+%global distlibdir %{_datadir}/%{name}/lib/
+%global libdir %{_datadir}/%{name}/lib/
+%global usecpdeps "usecpdeps"
 BuildRequires: candlepin-deps >= 0:0.2.1
 %else
-%define usecpdeps ""
+%global usecpdeps ""
 
 # Require the candlepin software collection for packages we use that may
 # conflict with other projects/releases:
@@ -172,7 +172,7 @@ Requires: javamail
 Requires: javassist >= 3.12.0
 Requires: jta
 %endif
-%define __jar_repack %{nil}
+%global __jar_repack %{nil}
 
 %description
 Candlepin is an open source entitlement management system.
