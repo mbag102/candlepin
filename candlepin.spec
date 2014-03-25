@@ -11,22 +11,25 @@
 # the compilation phase. It is later destroyed and the spec file will
 # re-call initjars with the correct destination for both tomcat and jboss.
 %global distlibdir %{buildroot}/%{_tmppath}/distlibdir/
-%global libdir %{_datadir}/java/
+%global libdir %{_javadir}
 
 # We require the Candlepin SCL, but because we are not an SCL package
 # ourselves, we need to point to deps in the expected location.
 %global scllibdir /opt/rh/candlepin-scl/root
 
-%if 0%{?fedora}
-%global reqcpdeps 1
-%endif
+%{?fedora:%global reqcpdeps 1}
+
+# Ideally we would just use %{dist} for the deps_suffix, but %dist isn't just always
+# the major version.  E.g. rpm --eval "%{dist}" returns ".el6_5" in the RHEL 6
+# candlepin buildroot and ".el6" in other environments.
+%{?fedora:%global deps_suffix fc%{fedora}}
+%{?rhel:%global deps_suffix el%{rhel}}
 
 %if 0%{?fedora} >= 19
 %global tomcat tomcat
 %else
 %global tomcat tomcat6
 %endif
-
 
 Name: candlepin
 Summary: Candlepin is an open source entitlement management system
@@ -50,11 +53,8 @@ BuildRequires: selinux-policy-doc
 %if 0%{?reqcpdeps}
 %global distlibdir %{_datadir}/%{name}/lib/
 %global libdir %{_datadir}/%{name}/lib/
-%global usecpdeps "usecpdeps"
 BuildRequires: candlepin-deps >= 0:0.2.1
 %else
-%global usecpdeps ""
-
 # Require the candlepin software collection for packages we use that may
 # conflict with other projects/releases:
 BuildRequires: scl-utils-build
@@ -224,7 +224,7 @@ SELinux policy module supporting candlepin
 mkdir -p %{distlibdir}
 
 %build
-ant -Ddepsfile=deps/el%{?rhel}.txt -Dlibdir=%{libdir} -Ddistlibdir=%{distlibdir} -Dscllibdir=%{scllibdir}/%{_datadir}/java/ clean %{usecpdeps} package
+ant -Ddepsfile=deps/%{deps_suffix}.txt -Dlibdir=%{libdir} -Ddistlibdir=%{distlibdir} -Dscllibdir=%{scllibdir}/%{_datadir}/java/ clean %{?reqcpdeps:usecpdeps} package
 
 cd selinux
 for selinuxvariant in %{selinux_variants}
