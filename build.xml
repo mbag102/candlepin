@@ -22,7 +22,10 @@
   <property name="scl.lib.dir" location="${scllibdir}" />
 
   <!-- A newline delimited list of all the JAR dependencies -->
-  <property name="deps.file" location="${depsfile}" />
+  <!-- Use /dev/null if not set -->
+  <condition property="deps.file" value="/dev/null">
+      <not><isset property="deps.file"/></not>
+  </condition>
 
   <!-- List of jars we expect to install from /usr/share/java in a regular build.
        The input should be a newline delimited list of artifact names or coordinates

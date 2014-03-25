@@ -224,7 +224,8 @@ SELinux policy module supporting candlepin
 mkdir -p %{distlibdir}
 
 %build
-ant -Ddepsfile=deps/%{deps_suffix}.txt -Dlibdir=%{libdir} -Ddistlibdir=%{distlibdir} -Dscllibdir=%{scllibdir}/%{_datadir}/java/ clean %{?reqcpdeps:usecpdeps} package
+# Once candlepin-deps is gone we can remove the %{?rhel} conditional
+ant %{?rhel:-Ddeps.file=deps/%{deps_suffix}.txt} -Dlibdir=%{libdir} -Ddistlibdir=%{distlibdir} -Dscllibdir=%{scllibdir}/%{_datadir}/java/ clean %{?reqcpdeps:usecpdeps} package
 
 cd selinux
 for selinuxvariant in %{selinux_variants}
@@ -260,7 +261,7 @@ unzip target/%{name}-%{version}.war -d %{buildroot}/%{_localstatedir}/lib/%{tomc
 %if !0%{?reqcpdeps}
 #remove the copied jars and resymlink
 rm %{buildroot}/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/*.jar
-ant -Ddepsfile=deps/el%{?rhel}.txt -Ddistlibdir=%{buildroot}/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/ -Dscllibdir=%{scllibdir}/%{_datadir}/java/ initjars
+ant %{?rhel:-Ddeps.file=deps/%{deps_suffix}.txt} -Ddistlibdir=%{buildroot}/%{_localstatedir}/lib/%{tomcat}/webapps/%{name}/WEB-INF/lib/ -Dscllibdir=%{scllibdir}/%{_datadir}/java/ initjars
 
 %endif
 ln -s /etc/candlepin/certs/keystore %{buildroot}/%{_sysconfdir}/%{tomcat}/keystore
