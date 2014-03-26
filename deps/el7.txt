@@ -41,7 +41,6 @@ javamail/mail
 javassist
 javax.inject
 jboss-logging
-jcl-over-slf4j
 jta
 log4j
 logback-classic
@@ -59,4 +58,5 @@ resteasy/resteasy-multipart-provider
 scannotation
 servlet
 sisu-cglib/cglib
-slf4j-api
+slf4j/api
+slf4j/jcl-over-slf4j

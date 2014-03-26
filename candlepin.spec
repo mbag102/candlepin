@@ -69,11 +69,15 @@ BuildRequires: hibernate4-c3p0 >= 0:4.2.5
 BuildRequires: glassfish-jaxb
 BuildRequires: guava >= 0:13.0
 BuildRequires: apache-commons-collections
+BuildRequires: mvn(org.slf4j:slf4j-api)  >= 0:1.7.4
+BuildRequires: mvn(org.slf4j:jcl-over-slf4j)  >= 0:1.7.4
 %else
 BuildRequires: ant-nodeps >= 0:1.7.0
 BuildRequires: jaxb-impl
 BuildRequires: google-collections >= 0:1.0
 BuildRequires: commons-collections >= 3.1
+BuildRequires: slf4j-api >= 0:1.7.5
+BuildRequires: jcl-over-slf4j >= 0:1.7.5
 %endif
 
 BuildRequires: javassist >= 3.12.0
@@ -102,8 +106,6 @@ BuildRequires: hibernate-jpa-2.0-api >= 1.0.1
 BuildRequires: netty
 BuildRequires: jms >= 0:1.1
 BuildRequires: oauth >= 20100601-4
-BuildRequires: slf4j-api >= 0:1.7.5
-BuildRequires: jcl-over-slf4j >= 0:1.7.5
 
 # needed to setup runtime deps, not for compilation
 BuildRequires: c3p0 >= 0.9.1.2
@@ -135,10 +137,15 @@ Requires: bouncycastle
 Requires: glassfish-jaxb
 Requires: guava >= 0:13.0
 Requires: apache-commons-collections
+Requires: mvn(org.slf4j:slf4j-api)  >= 0:1.7.4
+Requires: mvn(org.slf4j:jcl-over-slf4j)  >= 0:1.7.4
 %else
 Requires: jaxb-impl
 Requires: google-collections >= 0:1.0
 Requires: commons-collections >= 3.1
+Requires: slf4j-api >= 0:1.7.5-4
+# apache-mime4j uses commons-logging, so we have to provide a slf4j bridge
+Requires: jcl-over-slf4j >= 0:1.7.5
 %endif
 Requires: hibernate4-core >= 0:4.2.5
 Requires: hibernate4-entitymanager >= 0:4.2.5
@@ -159,9 +166,6 @@ Requires: netty
 Requires: oauth >= 20100601-4
 Requires: logback-classic
 Requires: scannotation
-Requires: slf4j-api >= 0:1.7.5-4
-# apache-mime4j uses commons-logging, so we have to provide a slf4j bridge
-Requires: jcl-over-slf4j >= 0:1.7.5
 Requires: jakarta-commons-lang
 Requires: jakarta-commons-io
 Requires: apache-commons-codec
