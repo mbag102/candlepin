@@ -43,6 +43,7 @@ public class JobStatus extends AbstractHibernateObject {
 
     public static final String TARGET_TYPE = "target_type";
     public static final String TARGET_ID = "target_id";
+    public static final int RESULT_COL_LENGTH = 255;
 
     /**
      * Indicates possible states for a particular job.
@@ -73,7 +74,7 @@ public class JobStatus extends AbstractHibernateObject {
     private JobState state;
     private Date startTime;
     private Date finishTime;
-    @Column(length = 255)
+    @Column(length = RESULT_COL_LENGTH)
     private String result;
     private String principalName;
 
@@ -188,12 +189,12 @@ public class JobStatus extends AbstractHibernateObject {
     }
 
     public void setResult(String result) {
-        // truncate the results to the first 255 characters
-        if (result == null || result.length() < 255) {
+        // truncate the result to fit column
+        if (result == null || result.length() < RESULT_COL_LENGTH) {
             this.result = result;
         }
         else {
-            this.result = result.substring(0, 255);
+            this.result = result.substring(0, RESULT_COL_LENGTH);
         }
     }
 

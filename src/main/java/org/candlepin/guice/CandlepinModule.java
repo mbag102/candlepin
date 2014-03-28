@@ -14,6 +14,8 @@
  */
 package org.candlepin.guice;
 
+import java.util.Properties;
+
 import org.candlepin.audit.EventSink;
 import org.candlepin.audit.EventSinkImpl;
 import org.candlepin.auth.Principal;
@@ -34,19 +36,22 @@ import org.candlepin.exceptions.mappers.NoLogWebApplicationExceptionMapper;
 import org.candlepin.exceptions.mappers.NotAcceptableExceptionMapper;
 import org.candlepin.exceptions.mappers.NotFoundExceptionMapper;
 import org.candlepin.exceptions.mappers.ReaderExceptionMapper;
+import org.candlepin.exceptions.mappers.RollbackExceptionMapper;
 import org.candlepin.exceptions.mappers.RuntimeExceptionMapper;
 import org.candlepin.exceptions.mappers.UnauthorizedExceptionMapper;
 import org.candlepin.exceptions.mappers.UnsupportedMediaTypeExceptionMapper;
 import org.candlepin.exceptions.mappers.WebApplicationExceptionMapper;
 import org.candlepin.exceptions.mappers.WriterExceptionMapper;
+import org.candlepin.hibernate.HibernateResourceBundleLocator;
+import org.candlepin.hibernate.CandlepinValidatorFactory;
 import org.candlepin.model.UeberCertificateGenerator;
 import org.candlepin.pinsetter.core.GuiceJobFactory;
 import org.candlepin.pinsetter.core.PinsetterJobListener;
 import org.candlepin.pinsetter.core.PinsetterKernel;
 import org.candlepin.pinsetter.tasks.CertificateRevocationListTask;
 import org.candlepin.pinsetter.tasks.EntitlerJob;
-import org.candlepin.pinsetter.tasks.JobCleaner;
 import org.candlepin.pinsetter.tasks.ExportCleaner;
+import org.candlepin.pinsetter.tasks.JobCleaner;
 import org.candlepin.pinsetter.tasks.RefreshPoolsJob;
 import org.candlepin.pinsetter.tasks.SweepBarJob;
 import org.candlepin.pinsetter.tasks.UnpauseJob;
@@ -64,11 +69,11 @@ import org.candlepin.resource.ActivationKeyContentOverrideResource;
 import org.candlepin.resource.ActivationKeyResource;
 import org.candlepin.resource.AdminResource;
 import org.candlepin.resource.AtomFeedResource;
+import org.candlepin.resource.CdnResource;
 import org.candlepin.resource.CertificateSerialResource;
 import org.candlepin.resource.ConsumerContentOverrideResource;
 import org.candlepin.resource.ConsumerResource;
 import org.candlepin.resource.ConsumerTypeResource;
-import org.candlepin.resource.CdnResource;
 import org.candlepin.resource.ContentResource;
 import org.candlepin.resource.CrlResource;
 import org.candlepin.resource.DeletedConsumerResource;
@@ -109,16 +114,15 @@ import org.candlepin.util.DateSource;
 import org.candlepin.util.DateSourceImpl;
 import org.candlepin.util.ExpiryDateFunction;
 import org.candlepin.util.X509ExtensionUtil;
+import org.quartz.JobListener;
+import org.quartz.spi.JobFactory;
+import org.xnap.commons.i18n.I18n;
 
 import com.google.common.base.Function;
 import com.google.inject.AbstractModule;
 import com.google.inject.Singleton;
 import com.google.inject.name.Names;
 import com.google.inject.persist.jpa.JpaPersistModule;
-
-import org.quartz.JobListener;
-import org.quartz.spi.JobFactory;
-import org.xnap.commons.i18n.I18n;
 
 /**
  * CandlepinProductionConfiguration
@@ -134,8 +138,11 @@ public class CandlepinModule extends AbstractModule {
 
         Config config = new Config();
         bind(Config.class).asEagerSingleton();
-        install(new JpaPersistModule("default").properties(
-                config.jpaConfiguration(config)));
+        bind(I18n.class).toProvider(I18nProvider.class);
+        
+        Properties p = config.jpaConfiguration(config);
+        p.put("javax.persistence.validation.factory", new CandlepinValidatorFactory(null));
+        install(new JpaPersistModule("default").properties(p));
         bind(JPAInitializer.class).asEagerSingleton();
 
         bind(PKIUtility.class).to(BouncyCastlePKIUtility.class).asEagerSingleton();
@@ -182,6 +189,7 @@ public class CandlepinModule extends AbstractModule {
         bind(InternalServerErrorExceptionMapper.class);
         bind(DefaultOptionsMethodExceptionMapper.class);
         bind(BadRequestExceptionMapper.class);
+        bind(RollbackExceptionMapper.class);
         bind(WebApplicationExceptionMapper.class);
         bind(FailureExceptionMapper.class);
         bind(ReaderExceptionMapper.class);
@@ -199,9 +207,10 @@ public class CandlepinModule extends AbstractModule {
         bind(DeletedConsumerResource.class);
         bind(CdnResource.class);
         bind(GuestIdResource.class);
+        bind(HibernateResourceBundleLocator.class);
+       
 
 
-        bind(I18n.class).toProvider(I18nProvider.class);
         this.configureInterceptors();
         bind(JsonProvider.class);
         bind(EventSink.class).to(EventSinkImpl.class);

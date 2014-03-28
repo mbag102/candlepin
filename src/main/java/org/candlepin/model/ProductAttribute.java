@@ -23,6 +23,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import javax.validation.constraints.Size;
 import javax.xml.bind.annotation.XmlTransient;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -48,6 +49,7 @@ public class ProductAttribute extends AbstractHibernateObject implements Attribu
     protected String name;
 
     @Column
+    @Size(max = 255)
     protected String value;
 
 

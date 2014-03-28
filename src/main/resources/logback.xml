@@ -40,7 +40,7 @@
 
     <logger name="org.candlepin" level="INFO"/>
 
-    <root level="WARN">
+    <root level="INFO">
         <appender-ref ref="CandlepinAppender" />
         <appender-ref ref="ErrorAppender" />
     </root>

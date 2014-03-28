@@ -1,11 +1,12 @@
 <persistence xmlns="http://java.sun.com/xml/ns/persistence"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_1_0.xsd"
-    version="1.0">
+    xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
+    version="2.0">
 
     <!--  default persistence uses an in-memory hsqldb. -->
     <persistence-unit name="default" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.ejb.HibernatePersistence</provider>
+<!--        <validation-mode>CALLBACK</validation-mode> -->
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.HSQLDialect"/>
             <property name="hibernate.connection.driver_class" value="org.hsqldb.jdbcDriver"/>
@@ -15,11 +16,13 @@
             <property name="hibernate.connection.password" value=""/>
             <property name="hibernate.show_sql" value="false" />
             <property name="hibernate.ejb.interceptor" value="org.candlepin.hibernate.EmptyStringInterceptor"/>
+<!--            <property name="javax.persistence.validation.factory" value="org.candlepin.hibernate.HibernateValidatorFactory"/> -->
         </properties>
     </persistence-unit>
 
     <persistence-unit name="production" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.ejb.HibernatePersistence</provider>
+<!--        <validation-mode>CALLBACK</validation-mode> -->
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
             <property name="hibernate.connection.driver_class" value="org.postgresql.Driver"/>
@@ -42,6 +45,7 @@
             <!-- max_statements should always be 0 -->
             <property name="hibernate.c3p0.max_statements" value="0" />
             <property name="hibernate.ejb.interceptor" value="org.candlepin.hibernate.EmptyStringInterceptor"/>
+<!--            <property name="javax.persistence.validation.factory" value="org.candlepin.hibernate.HibernateValidatorFactory"/>-->
         </properties>
     </persistence-unit>
 

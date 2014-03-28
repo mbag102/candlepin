@@ -15,6 +15,7 @@
 package org.candlepin.guice;
 
 import org.candlepin.audit.HornetqContextListener;
+import org.candlepin.exceptions.mappers.CandlepinExceptionMapper;
 import org.candlepin.logging.LoggerContextListener;
 import org.candlepin.pinsetter.core.PinsetterContextListener;
 
@@ -30,6 +31,8 @@ import org.jboss.resteasy.spi.Registry;
 import org.jboss.resteasy.spi.ResourceFactory;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.jboss.resteasy.util.GetRestful;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xnap.commons.i18n.I18nManager;
 
 import java.lang.reflect.Type;
@@ -63,6 +66,8 @@ public class CandlepinContextListener extends
     static {
         I18nManager.getInstance().setDefaultLocale(Locale.US);
     }
+    private static Logger log = LoggerFactory.getLogger(CandlepinContextListener.class);
+
 
     @Override
     public void contextInitialized(final ServletContextEvent event) {
@@ -128,6 +133,7 @@ public class CandlepinContextListener extends
                     registry.addResourceFactory(resourceFactory);
                 }
                 if (beanClass.isAnnotationPresent(Provider.class)) {
+                    log.error("register:  " + beanClass.getName());
                     providerFactory.registerProviderInstance(binding.getProvider().get());
                 }
             }
