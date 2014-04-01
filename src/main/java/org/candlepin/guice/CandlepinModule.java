@@ -14,8 +14,6 @@
  */
 package org.candlepin.guice;
 
-import java.util.Properties;
-
 import org.candlepin.audit.EventSink;
 import org.candlepin.audit.EventSinkImpl;
 import org.candlepin.auth.Principal;
@@ -42,8 +40,6 @@ import org.candlepin.exceptions.mappers.UnauthorizedExceptionMapper;
 import org.candlepin.exceptions.mappers.UnsupportedMediaTypeExceptionMapper;
 import org.candlepin.exceptions.mappers.WebApplicationExceptionMapper;
 import org.candlepin.exceptions.mappers.WriterExceptionMapper;
-import org.candlepin.hibernate.HibernateResourceBundleLocator;
-import org.candlepin.hibernate.CandlepinValidatorFactory;
 import org.candlepin.model.UeberCertificateGenerator;
 import org.candlepin.pinsetter.core.GuiceJobFactory;
 import org.candlepin.pinsetter.core.PinsetterJobListener;
@@ -114,15 +110,16 @@ import org.candlepin.util.DateSource;
 import org.candlepin.util.DateSourceImpl;
 import org.candlepin.util.ExpiryDateFunction;
 import org.candlepin.util.X509ExtensionUtil;
-import org.quartz.JobListener;
-import org.quartz.spi.JobFactory;
-import org.xnap.commons.i18n.I18n;
 
 import com.google.common.base.Function;
 import com.google.inject.AbstractModule;
 import com.google.inject.Singleton;
 import com.google.inject.name.Names;
 import com.google.inject.persist.jpa.JpaPersistModule;
+
+import org.quartz.JobListener;
+import org.quartz.spi.JobFactory;
+import org.xnap.commons.i18n.I18n;
 
 /**
  * CandlepinProductionConfiguration
@@ -136,17 +133,18 @@ public class CandlepinModule extends AbstractModule {
         bindScope(CandlepinSingletonScoped.class, singletonScope);
         bind(CandlepinSingletonScope.class).toInstance(singletonScope);
 
+        bind(I18n.class).toProvider(I18nProvider.class);
+
         Config config = new Config();
         bind(Config.class).asEagerSingleton();
-        bind(I18n.class).toProvider(I18nProvider.class);
-        
-        Properties p = config.jpaConfiguration(config);
-        p.put("javax.persistence.validation.factory", new CandlepinValidatorFactory(null));
-        install(new JpaPersistModule("default").properties(p));
+        install(new JpaPersistModule("default").properties(config
+            .jpaConfiguration(config)));
         bind(JPAInitializer.class).asEagerSingleton();
 
-        bind(PKIUtility.class).to(BouncyCastlePKIUtility.class).asEagerSingleton();
-        bind(PKIReader.class).to(BouncyCastlePKIReader.class).asEagerSingleton();
+        bind(PKIUtility.class).to(BouncyCastlePKIUtility.class)
+            .asEagerSingleton();
+        bind(PKIReader.class).to(BouncyCastlePKIReader.class)
+            .asEagerSingleton();
         bind(X509ExtensionUtil.class);
         bind(CrlGenerator.class);
         bind(ConsumerResource.class);
@@ -207,9 +205,6 @@ public class CandlepinModule extends AbstractModule {
         bind(DeletedConsumerResource.class);
         bind(CdnResource.class);
         bind(GuestIdResource.class);
-        bind(HibernateResourceBundleLocator.class);
-       
-
 
         this.configureInterceptors();
         bind(JsonProvider.class);
@@ -222,7 +217,7 @@ public class CandlepinModule extends AbstractModule {
         bind(RefreshPoolsJob.class);
         bind(EntitlerJob.class);
 
-        //UeberCerts
+        // UeberCerts
         bind(UeberCertificateGenerator.class);
 
         // flexible end date for identity certificates

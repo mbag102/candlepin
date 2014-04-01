@@ -15,7 +15,6 @@
 package org.candlepin.guice;
 
 import org.candlepin.audit.HornetqContextListener;
-import org.candlepin.exceptions.mappers.CandlepinExceptionMapper;
 import org.candlepin.logging.LoggerContextListener;
 import org.candlepin.pinsetter.core.PinsetterContextListener;
 

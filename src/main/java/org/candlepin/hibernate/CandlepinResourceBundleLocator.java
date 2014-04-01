@@ -14,30 +14,21 @@
  */
 package org.candlepin.hibernate;
 
+import org.candlepin.guice.I18nProvider;
+
+import org.hibernate.validator.spi.resourceloading.ResourceBundleLocator;
+
 import java.util.Locale;
 import java.util.ResourceBundle;
 
-import org.hibernate.validator.spi.resourceloading.ResourceBundleLocator;
-import org.xnap.commons.i18n.I18n;
-
-import com.google.inject.Inject;
-
 
 /**
- * HibernateResourceLocator
+ * The CandlepinResourceBundleLocator simply delegates Validation message lookups
+ * to the I18n class.
  */
-public class HibernateResourceBundleLocator implements ResourceBundleLocator {
-   private I18n i18n;
-
-   
-   @Inject
-   public HibernateResourceBundleLocator(I18n i18n) {
-       this.i18n = i18n;
-   }
-
-   @Override
+public class CandlepinResourceBundleLocator implements ResourceBundleLocator {
+    @Override
     public ResourceBundle getResourceBundle(Locale locale) {
-        return i18n.getResources();
+        return new I18nProvider(locale).get().getResources();
     }
-
 }

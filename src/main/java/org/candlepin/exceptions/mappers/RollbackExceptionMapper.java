@@ -14,9 +14,10 @@
  */
 package org.candlepin.exceptions.mappers;
 
+import org.candlepin.exceptions.ExceptionMessage;
+import org.candlepin.util.VersionUtil;
+
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.persistence.RollbackException;
 import javax.validation.ConstraintViolation;
@@ -28,9 +29,6 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-import org.candlepin.exceptions.ExceptionMessage;
-import org.candlepin.util.VersionUtil;
-
 /**
  * BadRequestExceptionMapper maps the RESTEasy BadRequestException
  * into JSON and allows the proper header to be set. This allows
@@ -39,12 +37,6 @@ import org.candlepin.util.VersionUtil;
 @Provider
 public class RollbackExceptionMapper extends CandlepinExceptionMapper
     implements ExceptionMapper<RollbackException> {
-
-    private static final Pattern PARAM_REGEX = Pattern.compile(
-        "(?:javax\\.ws\\.rs\\.\\w+\\(\\\")([\\w\\s]+)(\\\"\\))");
-
-    private static final Pattern ILLEGAL_VAL_REGEX = Pattern.compile(
-        ":?value\\sis\\s'([\\w\\s]+)(:?'\\sfor)");
 
     @Override
     public Response toResponse(RollbackException exception) {
@@ -56,15 +48,14 @@ public class RollbackExceptionMapper extends CandlepinExceptionMapper
         Throwable cause = exception.getCause();
         if (ValidationException.class.isAssignableFrom(cause.getClass())) {
             String message = "";
-            for (ConstraintViolation cv : ((ConstraintViolationException)cause).getConstraintViolations()) {
+            for (ConstraintViolation cv : ((ConstraintViolationException) cause).getConstraintViolations()) {
                 message += cv.getPropertyPath().toString() + ": " + cv.getMessage();
             }
-            bldr.entity(new ExceptionMessage(message));            
+            bldr.entity(new ExceptionMessage(message));
         }
         else {
             getDefaultBuilder(exception, Response.Status.BAD_REQUEST, determineBestMediaType());
         }
         return bldr.build();
     }
-
 }
