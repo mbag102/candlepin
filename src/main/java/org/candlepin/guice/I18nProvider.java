@@ -61,19 +61,12 @@ public class I18nProvider implements Provider<I18n> {
         }
 
         locale = (locale == null) ? Locale.US : locale;
-        findLocale(locale);
-    }
 
-    public I18nProvider(Locale locale) {
-        findLocale(locale);
-    }
-
-    protected void findLocale(Locale locale) {
         // If the locale does not exist, xnap is pretty inefficient.
         // This cache will hold the records more efficiently.
         //
         // Make sure to keep the access wrapped in synchronized so we can
-        // share accross threads!
+        // share across threads!
         synchronized (cache) {
             i18n = cache.get(locale);
             if (i18n == null) {

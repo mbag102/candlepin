@@ -6,7 +6,7 @@
     <!--  default persistence uses an in-memory hsqldb. -->
     <persistence-unit name="default" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.ejb.HibernatePersistence</provider>
-        <validation-mode>CALLBACK</validation-mode>
+        <validation-mode>NONE</validation-mode>
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.HSQLDialect"/>
             <property name="hibernate.connection.driver_class" value="org.hsqldb.jdbcDriver"/>
@@ -21,7 +21,7 @@
 
     <persistence-unit name="production" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.ejb.HibernatePersistence</provider>
-        <validation-mode>CALLBACK</validation-mode>
+        <validation-mode>NONE</validation-mode>
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
             <property name="hibernate.connection.driver_class" value="org.postgresql.Driver"/>

@@ -40,6 +40,8 @@ import org.candlepin.exceptions.mappers.UnauthorizedExceptionMapper;
 import org.candlepin.exceptions.mappers.UnsupportedMediaTypeExceptionMapper;
 import org.candlepin.exceptions.mappers.WebApplicationExceptionMapper;
 import org.candlepin.exceptions.mappers.WriterExceptionMapper;
+import org.candlepin.hibernate.CandlepinMessageInterpolator;
+import org.candlepin.hibernate.CandlepinResourceBundleLocator;
 import org.candlepin.model.UeberCertificateGenerator;
 import org.candlepin.pinsetter.core.GuiceJobFactory;
 import org.candlepin.pinsetter.core.PinsetterJobListener;
@@ -113,13 +115,26 @@ import org.candlepin.util.X509ExtensionUtil;
 
 import com.google.common.base.Function;
 import com.google.inject.AbstractModule;
+import com.google.inject.Provider;
+import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import com.google.inject.name.Names;
 import com.google.inject.persist.jpa.JpaPersistModule;
 
+import org.hibernate.cfg.beanvalidation.BeanValidationEventListener;
+import org.hibernate.validator.HibernateValidator;
+import org.hibernate.validator.HibernateValidatorConfiguration;
+import org.hibernate.validator.spi.resourceloading.ResourceBundleLocator;
 import org.quartz.JobListener;
 import org.quartz.spi.JobFactory;
 import org.xnap.commons.i18n.I18n;
+
+import java.util.Properties;
+
+import javax.validation.MessageInterpolator;
+import javax.validation.Validation;
+import javax.validation.ValidatorFactory;
 
 /**
  * CandlepinProductionConfiguration
@@ -134,6 +149,9 @@ public class CandlepinModule extends AbstractModule {
         bind(CandlepinSingletonScope.class).toInstance(singletonScope);
 
         bind(I18n.class).toProvider(I18nProvider.class);
+        bind(BeanValidationEventListener.class).toProvider(ValidationListenerProvider.class);
+        bind(ResourceBundleLocator.class).to(CandlepinResourceBundleLocator.class);
+        bind(MessageInterpolator.class).to(CandlepinMessageInterpolator.class);
 
         Config config = new Config();
         bind(Config.class).asEagerSingleton();
@@ -223,6 +241,20 @@ public class CandlepinModule extends AbstractModule {
         // flexible end date for identity certificates
         bind(Function.class).annotatedWith(Names.named("endDateGenerator"))
             .to(ExpiryDateFunction.class).in(Singleton.class);
+    }
+
+    @Provides @Named("ValidationProperties")
+    protected Properties getValidationProperties() {
+        return new Properties();
+    }
+
+    @Provides
+    protected ValidatorFactory getValidationFactory(Provider<MessageInterpolator> interpolatorProvider) {
+        HibernateValidatorConfiguration configure =
+            Validation.byProvider(HibernateValidator.class).configure();
+
+        configure.messageInterpolator(interpolatorProvider.get());
+        return configure.buildValidatorFactory();
     }
 
     private void configureInterceptors() {
