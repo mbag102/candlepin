@@ -20,6 +20,8 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -68,17 +70,28 @@ public class JobStatus extends AbstractHibernateObject {
     }
 
     @Id
+    @Size(max = 255)
+    @NotNull
     private String id;
+    
     @Column(length = 15)
+    @Size(max = 15)
     private String jobGroup;
+    
     private JobState state;
     private Date startTime;
     private Date finishTime;
+    
     @Column(length = RESULT_COL_LENGTH)
+    @Size(max = RESULT_COL_LENGTH)
     private String result;
+    
+    @Size(max = 255)
     private String principalName;
 
     private TargetType targetType;
+
+    @Size(max = 255)
     private String targetId;
 
     @Column(length = 255)
