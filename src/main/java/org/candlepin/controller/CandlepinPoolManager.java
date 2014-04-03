@@ -165,14 +165,20 @@ public class CandlepinPoolManager implements PoolManager {
                 continue;
             }
 
-            if (!poolExistsForSubscription(subToPoolMap, sub.getId())) {
-                createPoolsForSubscription(sub);
-                subToPoolMap.remove(sub.getId());
+            try {
+                if (!poolExistsForSubscription(subToPoolMap, sub.getId())) {
+                    createPoolsForSubscription(sub);
+                }
+                else {
+                    entitlementsToRegen.addAll(
+                        updatePoolsForSubscription(subToPoolMap.get(sub.getId()), sub)
+                    );
+                }
             }
-            else {
-                entitlementsToRegen.addAll(
-                    updatePoolsForSubscription(subToPoolMap.get(sub.getId()), sub)
-                );
+            catch (Exception e) {
+                log.warn("Failed to create or update pools for subscription " + sub, e);
+            }
+            finally {
                 subToPoolMap.remove(sub.getId());
             }
         }
