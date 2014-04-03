@@ -12,34 +12,35 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.hibernate;
+package org.candlepin.guice;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import com.google.inject.name.Named;
 
-import org.hibernate.validator.spi.resourceloading.ResourceBundleLocator;
-import org.xnap.commons.i18n.I18n;
+import org.hibernate.cfg.beanvalidation.BeanValidationEventListener;
 
-import java.util.Locale;
-import java.util.ResourceBundle;
+import java.util.Properties;
 
+import javax.validation.ValidatorFactory;
 
 /**
- * The CandlepinResourceBundleLocator simply delegates Validation message lookups
- * to the I18n class.
+ * ValidationListenerFactory
  */
-public class CandlepinResourceBundleLocator implements ResourceBundleLocator {
+public class ValidationListenerProvider implements Provider<BeanValidationEventListener> {
 
-    // You must use the Provider here otherwise you will end up with a stale I18n object!
-    private Provider<I18n> i18nProvider;
+    private ValidatorFactory factory;
+    private Properties properties;
 
     @Inject
-    public CandlepinResourceBundleLocator(Provider<I18n> i18nProvider) {
-        this.i18nProvider = i18nProvider;
+    public ValidationListenerProvider(ValidatorFactory factory,
+        @Named("ValidationProperties") Properties properties) {
+        this.factory = factory;
+        this.properties = properties;
     }
 
     @Override
-    public ResourceBundle getResourceBundle(Locale locale) {
-        return i18nProvider.get().getResources();
+    public BeanValidationEventListener get() {
+        return new BeanValidationEventListener(factory, properties);
     }
 }

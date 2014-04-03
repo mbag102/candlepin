@@ -14,12 +14,12 @@
  */
 package org.candlepin.hibernate;
 
+import com.google.inject.Inject;
+import com.google.inject.Provider;
+
 import org.hibernate.validator.messageinterpolation.ResourceBundleMessageInterpolator;
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
-
-import java.util.Locale;
-
-import javax.servlet.http.HttpServletRequest;
+import org.hibernate.validator.spi.resourceloading.ResourceBundleLocator;
+import org.xnap.commons.i18n.I18n;
 
 /**
  * CandlepinMessageInterpolator
@@ -27,15 +27,17 @@ import javax.servlet.http.HttpServletRequest;
 public class CandlepinMessageInterpolator extends
     ResourceBundleMessageInterpolator {
 
-    public CandlepinMessageInterpolator() {
-        super(new CandlepinResourceBundleLocator(), true);
+    // You must use the Provider here otherwise you will end up with a stale I18n object!
+    private Provider<I18n> i18nProvider;
+
+    @Inject
+    public CandlepinMessageInterpolator(ResourceBundleLocator rbi, Provider<I18n> i18nProvider) {
+        super(rbi);
+        this.i18nProvider = i18nProvider;
     }
 
     @Override
     public String interpolate(String message, Context context) {
-        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
-        Locale locale = request.getLocale();
-        locale = (locale == null) ? Locale.US : locale;
-        return super.interpolate(message, context, locale);
+        return super.interpolate(message, context, i18nProvider.get().getLocale());
     }
 }
