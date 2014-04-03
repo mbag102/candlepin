@@ -136,8 +136,7 @@ public class CandlepinPoolManager implements PoolManager {
         List<Subscription> subs = subAdapter.getSubscriptions(owner);
         log.debug("Found " + subs.size() + " existing subscriptions.");
 
-        List<Pool> pools = this.listAvailableEntitlementPools(null, null,
-            owner, null, null, false, false, new PoolFilterBuilder(), null).getPageData();
+        List<Pool> pools = poolCurator.getOwnerPoolsLocked(owner);
 
         // Pools with no subscription ID:
         List<Pool> floatingPools = new LinkedList<Pool>();
