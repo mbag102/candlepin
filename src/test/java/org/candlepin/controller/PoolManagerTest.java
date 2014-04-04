@@ -171,14 +171,7 @@ public class PoolManagerTest {
         when(mockSubAdapter.getSubscriptions(any(Owner.class))).thenReturn(
             subscriptions);
 
-        Page page = mock(Page.class);
-        when(page.getPageData()).thenReturn(pools);
-
-        when(
-            mockPoolCurator.listAvailableEntitlementPools(any(Consumer.class),
-                any(Owner.class), anyString(), any(Date.class),
-                anyBoolean(), any(PoolFilterBuilder.class), any(PageRequest.class),
-                anyBoolean())).thenReturn(page);
+        when(mockPoolCurator.getOwnerPoolsLocked(any(Owner.class))).thenReturn(pools);
         this.manager.getRefresher().add(getOwner()).run();
         verify(this.manager).deletePool(same(p));
     }
@@ -200,14 +193,7 @@ public class PoolManagerTest {
         when(mockSubAdapter.getSubscriptions(any(Owner.class))).thenReturn(
             subscriptions);
 
-        Page page = mock(Page.class);
-        when(page.getPageData()).thenReturn(pools);
-
-        when(
-            mockPoolCurator.listAvailableEntitlementPools(any(Consumer.class),
-                any(Owner.class), anyString(), any(Date.class),
-                anyBoolean(), any(PoolFilterBuilder.class), any(PageRequest.class),
-                anyBoolean())).thenReturn(page);
+        when(mockPoolCurator.getOwnerPoolsLocked(any(Owner.class))).thenReturn(pools);
         this.manager.getRefresher().add(getOwner()).run();
         verify(this.manager).deletePool(same(p));
     }
@@ -284,13 +270,7 @@ public class PoolManagerTest {
         when(mockSubAdapter.getSubscriptions(any(Owner.class))).thenReturn(
             subscriptions);
 
-        Page page = mock(Page.class);
-        when(page.getPageData()).thenReturn(pools);
-        when(
-            mockPoolCurator.listAvailableEntitlementPools(any(Consumer.class),
-                any(Owner.class), anyString(), any(Date.class),
-                anyBoolean(), any(PoolFilterBuilder.class), any(PageRequest.class),
-                anyBoolean())).thenReturn(page);
+        when(mockPoolCurator.getOwnerPoolsLocked(any(Owner.class))).thenReturn(pools);
 
         this.manager.getRefresher().add(getOwner()).run();
         ArgumentCaptor<List> poolCaptor = ArgumentCaptor.forClass(List.class);
@@ -345,14 +325,7 @@ public class PoolManagerTest {
         when(mockSubAdapter.getSubscriptions(any(Owner.class))).thenReturn(
             subscriptions);
 
-        Page page = mock(Page.class);
-        when(page.getPageData()).thenReturn(pools);
-
-        when(
-            mockPoolCurator.listAvailableEntitlementPools(any(Consumer.class),
-                any(Owner.class), anyString(), any(Date.class),
-                anyBoolean(), any(PoolFilterBuilder.class), any(PageRequest.class),
-                anyBoolean())).thenReturn(page);
+        when(mockPoolCurator.getOwnerPoolsLocked(any(Owner.class))).thenReturn(pools);
 
         List<PoolUpdate> updates = new LinkedList();
         PoolUpdate u = new PoolUpdate(p);
@@ -540,24 +513,17 @@ public class PoolManagerTest {
         p.setConsumed(1L);
         pools.add(p);
 
-        Page page = mock(Page.class);
-        when(page.getPageData()).thenReturn(pools);
-
-        when(mockPoolCurator.lockAndLoad(any(Pool.class))).thenReturn(p);
-
-        when(mockPoolCurator.listAvailableEntitlementPools(any(Consumer.class),
-            any(Owner.class), anyString(), any(Date.class),
-            anyBoolean(), any(PoolFilterBuilder.class),
-            any(PageRequest.class), anyBoolean()))
-                .thenReturn(page);
+        when(mockPoolCurator.getOwnerPoolsLocked(any(Owner.class))).thenReturn(pools);
 
         List<Entitlement> poolEntitlements = Util.newList();
         Entitlement ent = TestUtil.createEntitlement();
         ent.setPool(p);
         ent.setQuantity(1);
         poolEntitlements.add(ent);
+        pool.getEntitlements().addAll(poolEntitlements);
 
         when(mockPoolCurator.entitlementsIn(eq(p))).thenReturn(poolEntitlements);
+        when(mockPoolCurator.lockAndLoad(any(Pool.class))).thenReturn(p);
 
         ValidationResult result = new ValidationResult();
         when(preHelper.getResult()).thenReturn(result);

@@ -152,7 +152,9 @@ public class CandlepinPoolManager implements PoolManager {
                 }
                 subToPoolMap.get(p.getSubscriptionId()).add(p);
             }
-            floatingPools.add(p);
+            else {
+                floatingPools.add(p);
+            }
         }
 
         Set<Entitlement> entitlementsToRegen = Util.newSet();
@@ -176,6 +178,7 @@ public class CandlepinPoolManager implements PoolManager {
                 }
             }
             catch (Exception e) {
+                // If another job has already created this pool, there's nothing to worry about.
                 log.warn("Failed to create or update pools for subscription " + sub, e);
             }
             finally {

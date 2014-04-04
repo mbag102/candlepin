@@ -26,6 +26,7 @@ import com.google.inject.Injector;
 import com.google.inject.persist.Transactional;
 
 import org.hibernate.Criteria;
+import org.hibernate.FetchMode;
 import org.hibernate.Filter;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
@@ -534,8 +535,13 @@ public class PoolCurator extends AbstractHibernateCurator<Pool> {
     @SuppressWarnings("unchecked")
     public List<Pool> getOwnerPoolsLocked(Owner owner) {
         return currentSession().createCriteria(Pool.class)
-            .add(Restrictions.eq("", owner))
-            .setLockMode(LockMode.UPGRADE)
+            .add(Restrictions.eq("owner", owner))
+            .setLockMode(LockMode.PESSIMISTIC_WRITE)
+            // Use FetchMode.SELECT for all nullable 1-1 relations
+            // otherwise the database will complain about locking
+            .setFetchMode("owner", FetchMode.SELECT)
+            .setFetchMode("sourceEntitlement", FetchMode.SELECT)
+            .setFetchMode("sourceStack", FetchMode.SELECT)
             .list();
     }
 }
