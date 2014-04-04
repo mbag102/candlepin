@@ -73,19 +73,19 @@ public class JobStatus extends AbstractHibernateObject {
     @Size(max = 255)
     @NotNull
     private String id;
-    
+
     @Column(length = 15)
     @Size(max = 15)
     private String jobGroup;
-    
+
     private JobState state;
     private Date startTime;
     private Date finishTime;
-    
+
     @Column(length = RESULT_COL_LENGTH)
     @Size(max = RESULT_COL_LENGTH)
     private String result;
-    
+
     @Size(max = 255)
     private String principalName;
 

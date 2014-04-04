@@ -64,7 +64,7 @@ public class ImportRecord extends AbstractHibernateObject {
     private Owner owner;
 
     private Status status;
-    
+
     @Size(max = 255)
     private String statusMessage;
 

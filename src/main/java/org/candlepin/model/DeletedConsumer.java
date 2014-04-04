@@ -49,7 +49,7 @@ public class DeletedConsumer extends AbstractHibernateObject {
      */
     @Column(name = "consumer_uuid", length = 255, nullable = false, unique = true)
     @Size(max = 255)
-    @NotNull   
+    @NotNull
     private String consumerUuid;
 
     /**

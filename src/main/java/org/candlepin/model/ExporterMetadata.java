@@ -45,7 +45,7 @@ public class ExporterMetadata extends AbstractHibernateObject {
     @Column(length = 32)
     @NotNull
     private String id;
-    
+
     @Column(nullable = false)
     @Size(max = 255)
     @NotNull

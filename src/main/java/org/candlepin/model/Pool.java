@@ -133,7 +133,6 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
     @ForeignKey(name = "fk_pool_source_entitlement")
     @JoinColumn(nullable = true)
     @Index(name = "cp_pool_entitlement_fk_idx")
-    @NotNull
     private Entitlement sourceEntitlement;
 
     /**
@@ -212,7 +211,7 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
 
     @Size(max = 255)
     private String accountNumber;
-    
+
     @Size(max = 255)
     private String orderNumber;
 

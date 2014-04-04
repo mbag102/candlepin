@@ -69,7 +69,6 @@ public class ConsumerInstalledProduct extends AbstractHibernateObject {
 
     @Column(name = "product_arch")
     @Size(max = 63)
-    @NotNull
     private String arch;
 
     @Transient
