@@ -17,27 +17,93 @@ package org.candlepin.hibernate;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 
-import org.hibernate.validator.messageinterpolation.ResourceBundleMessageInterpolator;
-import org.hibernate.validator.spi.resourceloading.ResourceBundleLocator;
 import org.xnap.commons.i18n.I18n;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import javax.validation.MessageInterpolator;
 
 /**
  * CandlepinMessageInterpolator
  */
-public class CandlepinMessageInterpolator extends
-    ResourceBundleMessageInterpolator {
+public class CandlepinMessageInterpolator implements MessageInterpolator {
+    public static final Map<String, ValidationMessage> MESSAGES =
+        new HashMap<String, ValidationMessage>() {
+            {
+                put("{javax.validation.constraints.Size.message}",
+                    new ValidationMessage(I18n.marktr("size must be between {0} and {1}"), "min", "max"));
 
-    // You must use the Provider here otherwise you will end up with a stale I18n object!
+            }
+        };
+
+    /**
+     * Validation message
+     * ValidationMessage
+     */
+    public static class ValidationMessage {
+        private String message;
+
+        private List<String> paramNames;
+
+        public ValidationMessage(String message, String... paramNames) {
+            this.message = message;
+            this.paramNames = Collections.unmodifiableList(Arrays.asList(paramNames));
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public List<String> getParamNames() {
+            return paramNames;
+        }
+
+        public void setParamNames(List<String> paramNames) {
+            this.paramNames = paramNames;
+        }
+    }
+
+    // You must use the Provider here otherwise you will end up with a stale
+    // I18n object!
     private Provider<I18n> i18nProvider;
 
     @Inject
-    public CandlepinMessageInterpolator(ResourceBundleLocator rbi, Provider<I18n> i18nProvider) {
-        super(rbi);
+    public CandlepinMessageInterpolator(Provider<I18n> i18nProvider) {
         this.i18nProvider = i18nProvider;
     }
 
     @Override
     public String interpolate(String message, Context context) {
-        return super.interpolate(message, context, i18nProvider.get().getLocale());
+        return interpolate(message, context, i18nProvider.get().getLocale());
+    }
+
+    @Override
+    public String interpolate(String messageTemplate, Context context,
+        Locale locale) {
+        Map<String, Object> attrs = context.getConstraintDescriptor().getAttributes();
+
+        ValidationMessage validationMessage = MESSAGES.get(messageTemplate);
+        List<Object> paramList = new ArrayList<Object>();
+        for (String param : validationMessage.getParamNames()) {
+            if (attrs.containsKey(param)) {
+                paramList.add(attrs.get(param));
+            }
+            else {
+                paramList.add(param);
+            }
+        }
+
+        return i18nProvider.get().tr(validationMessage.getMessage(), paramList.toArray());
     }
 }
