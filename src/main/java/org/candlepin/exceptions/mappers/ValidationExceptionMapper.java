@@ -16,7 +16,8 @@ package org.candlepin.exceptions.mappers;
 
 import java.util.Map;
 
-import javax.persistence.RollbackException;
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
 import javax.validation.ValidationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
@@ -24,6 +25,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import org.candlepin.exceptions.ExceptionMessage;
 import org.candlepin.util.VersionUtil;
 
 /**
@@ -32,19 +34,24 @@ import org.candlepin.util.VersionUtil;
  * Candlepin to control the flow of the exceptions.
  */
 @Provider
-public class RollbackExceptionMapper extends CandlepinExceptionMapper
-    implements ExceptionMapper<RollbackException> {
+public class ValidationExceptionMapper extends CandlepinExceptionMapper
+    implements ExceptionMapper<ValidationException> {
 
     @Override
-    public Response toResponse(RollbackException exception) {
+    public Response toResponse(ValidationException exception) {
         Map<String, String> map = VersionUtil.getVersionMap();
         ResponseBuilder bldr = Response.status(Status.BAD_REQUEST).type(
             determineBestMediaType()).header(VersionUtil.VERSION_HEADER,
                 map.get("version") + "-" + map.get("release"));
 
-        Throwable cause = exception.getCause();
-        if (ValidationException.class.isAssignableFrom(cause.getClass())) {
-            return new ValidationExceptionMapper().toResponse((ValidationException)cause);
+        StringBuffer message = new StringBuffer();
+        if (ConstraintViolationException.class.isAssignableFrom(exception.getClass())) {
+            for (ConstraintViolation cv : ((ConstraintViolationException)exception).getConstraintViolations()) {
+                message.append(cv.getPropertyPath().toString());
+                message.append(": ");
+                message.append(cv.getMessage());
+            }
+            bldr.entity(new ExceptionMessage(message.toString()));
         }
         else {
             getDefaultBuilder(exception, Response.Status.BAD_REQUEST, determineBestMediaType());
