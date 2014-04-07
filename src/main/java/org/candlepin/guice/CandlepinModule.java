@@ -38,6 +38,7 @@ import org.candlepin.exceptions.mappers.RollbackExceptionMapper;
 import org.candlepin.exceptions.mappers.RuntimeExceptionMapper;
 import org.candlepin.exceptions.mappers.UnauthorizedExceptionMapper;
 import org.candlepin.exceptions.mappers.UnsupportedMediaTypeExceptionMapper;
+import org.candlepin.exceptions.mappers.ValidationExceptionMapper;
 import org.candlepin.exceptions.mappers.WebApplicationExceptionMapper;
 import org.candlepin.exceptions.mappers.WriterExceptionMapper;
 import org.candlepin.hibernate.CandlepinMessageInterpolator;
@@ -206,6 +207,7 @@ public class CandlepinModule extends AbstractModule {
         bind(DefaultOptionsMethodExceptionMapper.class);
         bind(BadRequestExceptionMapper.class);
         bind(RollbackExceptionMapper.class);
+        bind(ValidationExceptionMapper.class);
         bind(WebApplicationExceptionMapper.class);
         bind(FailureExceptionMapper.class);
         bind(ReaderExceptionMapper.class);

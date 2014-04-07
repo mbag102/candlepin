@@ -46,7 +46,8 @@ public class ValidationExceptionMapper extends CandlepinExceptionMapper
 
         StringBuffer message = new StringBuffer();
         if (ConstraintViolationException.class.isAssignableFrom(exception.getClass())) {
-            for (ConstraintViolation cv : ((ConstraintViolationException)exception).getConstraintViolations()) {
+            for (ConstraintViolation cv :
+                ((ConstraintViolationException) exception).getConstraintViolations()) {
                 message.append(cv.getPropertyPath().toString());
                 message.append(": ");
                 message.append(cv.getMessage());

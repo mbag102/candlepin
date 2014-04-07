@@ -14,6 +14,10 @@
  */
 package org.candlepin.exceptions.mappers;
 
+import org.candlepin.util.VersionUtil;
+
+import com.google.inject.Inject;
+
 import java.util.Map;
 
 import javax.persistence.RollbackException;
@@ -24,16 +28,21 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-import org.candlepin.util.VersionUtil;
-
 /**
- * BadRequestExceptionMapper maps the RESTEasy BadRequestException
- * into JSON and allows the proper header to be set. This allows
- * Candlepin to control the flow of the exceptions.
+ * When validation fails, Hibernate can throw RollbackExceptions.  This mapper takes
+ * those exceptions, opens them up, and if the cause is a ValidationException, it
+ * delegates to the ValidationExceptionMapper.
  */
 @Provider
 public class RollbackExceptionMapper extends CandlepinExceptionMapper
     implements ExceptionMapper<RollbackException> {
+
+    private javax.inject.Provider<ValidationExceptionMapper> exceptionMapperProvider;
+
+    @Inject
+    public RollbackExceptionMapper(javax.inject.Provider<ValidationExceptionMapper> mapper) {
+        this.exceptionMapperProvider = mapper;
+    }
 
     @Override
     public Response toResponse(RollbackException exception) {
@@ -44,7 +53,7 @@ public class RollbackExceptionMapper extends CandlepinExceptionMapper
 
         Throwable cause = exception.getCause();
         if (ValidationException.class.isAssignableFrom(cause.getClass())) {
-            return new ValidationExceptionMapper().toResponse((ValidationException)cause);
+            return exceptionMapperProvider.get().toResponse((ValidationException) cause);
         }
         else {
             getDefaultBuilder(exception, Response.Status.BAD_REQUEST, determineBestMediaType());
