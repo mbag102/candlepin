@@ -14,6 +14,12 @@
  */
 package org.candlepin.guice;
 
+import java.util.Properties;
+
+import javax.validation.MessageInterpolator;
+import javax.validation.Validation;
+import javax.validation.ValidatorFactory;
+
 import org.candlepin.audit.EventSink;
 import org.candlepin.audit.EventSinkImpl;
 import org.candlepin.auth.Principal;
@@ -42,7 +48,6 @@ import org.candlepin.exceptions.mappers.ValidationExceptionMapper;
 import org.candlepin.exceptions.mappers.WebApplicationExceptionMapper;
 import org.candlepin.exceptions.mappers.WriterExceptionMapper;
 import org.candlepin.hibernate.CandlepinMessageInterpolator;
-import org.candlepin.hibernate.CandlepinResourceBundleLocator;
 import org.candlepin.model.UeberCertificateGenerator;
 import org.candlepin.pinsetter.core.GuiceJobFactory;
 import org.candlepin.pinsetter.core.PinsetterJobListener;
@@ -113,6 +118,12 @@ import org.candlepin.util.DateSource;
 import org.candlepin.util.DateSourceImpl;
 import org.candlepin.util.ExpiryDateFunction;
 import org.candlepin.util.X509ExtensionUtil;
+import org.hibernate.cfg.beanvalidation.BeanValidationEventListener;
+import org.hibernate.validator.HibernateValidator;
+import org.hibernate.validator.HibernateValidatorConfiguration;
+import org.quartz.JobListener;
+import org.quartz.spi.JobFactory;
+import org.xnap.commons.i18n.I18n;
 
 import com.google.common.base.Function;
 import com.google.inject.AbstractModule;
@@ -122,20 +133,6 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.google.inject.name.Names;
 import com.google.inject.persist.jpa.JpaPersistModule;
-
-import org.hibernate.cfg.beanvalidation.BeanValidationEventListener;
-import org.hibernate.validator.HibernateValidator;
-import org.hibernate.validator.HibernateValidatorConfiguration;
-import org.hibernate.validator.spi.resourceloading.ResourceBundleLocator;
-import org.quartz.JobListener;
-import org.quartz.spi.JobFactory;
-import org.xnap.commons.i18n.I18n;
-
-import java.util.Properties;
-
-import javax.validation.MessageInterpolator;
-import javax.validation.Validation;
-import javax.validation.ValidatorFactory;
 
 /**
  * CandlepinProductionConfiguration
@@ -151,7 +148,6 @@ public class CandlepinModule extends AbstractModule {
 
         bind(I18n.class).toProvider(I18nProvider.class);
         bind(BeanValidationEventListener.class).toProvider(ValidationListenerProvider.class);
-        bind(ResourceBundleLocator.class).to(CandlepinResourceBundleLocator.class);
         bind(MessageInterpolator.class).to(CandlepinMessageInterpolator.class);
 
         Config config = new Config();
