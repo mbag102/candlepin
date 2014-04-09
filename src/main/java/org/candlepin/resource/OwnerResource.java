@@ -39,6 +39,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
+import org.apache.commons.lang.StringUtils;
 import org.candlepin.audit.Event;
 import org.candlepin.audit.EventAdapter;
 import org.candlepin.audit.EventFactory;
@@ -500,7 +501,7 @@ public class OwnerResource {
         Owner owner = findOwner(ownerKey);
         activationKey.setOwner(owner);
 
-        if (activationKey.getName() == null || activationKey.getName().trim().equals("")) {
+        if (StringUtils.isBlank(activationKey.getName())) {
             throw new BadRequestException(
                 i18n.tr("Must provide a name for activation key."));
         }
@@ -673,6 +674,7 @@ public class OwnerResource {
         @PathParam("owner_key")
             @Verify(value = Owner.class, subResource = SubResource.POOLS) String ownerKey,
         @QueryParam("consumer") String consumerUuid,
+        @QueryParam("activation_key") String activationKeyName,
         @QueryParam("product") String productId,
         @QueryParam("listall") @DefaultValue("false") boolean listAll,
         @QueryParam("activeon") String activeOn,
@@ -707,13 +709,23 @@ public class OwnerResource {
             }
         }
 
+        ActivationKey key = null;
+        if (activationKeyName != null) {
+            key = activationKeyCurator.lookupForOwner(activationKeyName, owner);
+            if (key == null) {
+                throw new BadRequestException(
+                    i18n.tr("ActivationKey with id {0} could not be found.",
+                        activationKeyName));
+            }
+        }
+
         // Process the filters passed for the attributes
         PoolFilterBuilder poolFilters = new PoolFilterBuilder();
         for (KeyValueParameter filterParam : attrFilters) {
             poolFilters.addAttributeFilter(filterParam.key(), filterParam.value());
         }
 
-        Page<List<Pool>> page = poolManager.listAvailableEntitlementPools(c, owner,
+        Page<List<Pool>> page = poolManager.listAvailableEntitlementPools(c, key, owner,
             productId, activeOnDate, true, listAll, poolFilters, pageRequest);
         List<Pool> poolList = page.getPageData();
 

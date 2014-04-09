@@ -63,6 +63,7 @@ import org.candlepin.paging.Page;
 import org.candlepin.paging.PageRequest;
 import org.candlepin.policy.ValidationResult;
 import org.candlepin.policy.js.ProductCache;
+import org.candlepin.policy.js.activationkey.ActivationKeyRules;
 import org.candlepin.policy.js.autobind.AutobindRules;
 import org.candlepin.policy.js.compliance.ComplianceRules;
 import org.candlepin.policy.js.compliance.ComplianceStatus;
@@ -122,6 +123,9 @@ public class PoolManagerTest {
     @Mock
     private ComplianceRules complianceRules;
 
+    @Mock
+    private ActivationKeyRules activationKeyRules;
+
     private CandlepinPoolManager manager;
     private UserPrincipal principal;
 
@@ -144,7 +148,8 @@ public class PoolManagerTest {
         this.manager = spy(new CandlepinPoolManager(mockPoolCurator, mockSubAdapter,
             productCache, entCertAdapterMock, mockEventSink, eventFactory,
             mockConfig, enforcerMock, poolRulesMock, entitlementCurator,
-            consumerCuratorMock, certCuratorMock, complianceRules, autobindRules));
+            consumerCuratorMock, certCuratorMock, complianceRules, autobindRules,
+            activationKeyRules));
 
         when(entCertAdapterMock.generateEntitlementCert(any(Entitlement.class),
             any(Subscription.class), any(Product.class))).thenReturn(
@@ -153,6 +158,83 @@ public class PoolManagerTest {
         dummyComplianceStatus = new ComplianceStatus(new Date());
         when(complianceRules.getStatus(any(Consumer.class), any(Date.class))).thenReturn(
             dummyComplianceStatus);
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Test
+    public void testRefreshPoolsOnlyRegeneratesFloatingWhenNecessary() {
+        List<Subscription> subscriptions = Util.newList();
+        Product product = TestUtil.createProduct();
+        Subscription sub = TestUtil.createSubscription(getOwner(), product);
+        sub.setId("testing-subid");
+        subscriptions.add(sub);
+
+        // Set up pools
+        List<Pool> pools = Util.newList();
+
+        // Should be unchanged
+        Pool p = TestUtil.createPool(product);
+        p.setSubscriptionId(sub.getId());
+        pools.add(p);
+
+        // Should be regenerated because it has no subscription id
+        Pool floating = TestUtil.createPool(TestUtil.createProduct());
+        floating.setSubscriptionId(null);
+        pools.add(floating);
+        when(mockSubAdapter.getSubscriptions(any(Owner.class))).thenReturn(
+            subscriptions);
+
+        Page page = mock(Page.class);
+        when(page.getPageData()).thenReturn(pools);
+
+        when(
+            mockPoolCurator.listAvailableEntitlementPools(any(Consumer.class),
+                any(Owner.class), anyString(), any(Date.class),
+                anyBoolean(), any(PoolFilterBuilder.class), any(PageRequest.class),
+                anyBoolean())).thenReturn(page);
+        this.manager.getRefresher().add(getOwner()).run();
+        List<Pool> expectedFloating = new LinkedList();
+
+        // Make sure that only the floating pool was regenerated
+        expectedFloating.add(floating);
+        verify(this.manager).updateFloatingPools(eq(expectedFloating));
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Test
+    public void testRefreshPoolsOnlyRegeneratesWhenNecessary() {
+        List<Subscription> subscriptions = Util.newList();
+        Product product = TestUtil.createProduct();
+        Subscription sub = TestUtil.createSubscription(getOwner(), product);
+        sub.setId("testing-subid");
+        subscriptions.add(sub);
+
+        // Set up pools
+        List<Pool> pools = Util.newList();
+
+        // Should be unchanged
+        Pool p = TestUtil.createPool(product);
+        p.setSubscriptionId(sub.getId());
+        pools.add(p);
+
+        when(mockSubAdapter.getSubscriptions(any(Owner.class))).thenReturn(
+            subscriptions);
+
+        Page page = mock(Page.class);
+        when(page.getPageData()).thenReturn(pools);
+
+        when(
+            mockPoolCurator.listAvailableEntitlementPools(any(Consumer.class),
+                any(Owner.class), anyString(), any(Date.class),
+                anyBoolean(), any(PoolFilterBuilder.class), any(PageRequest.class),
+                anyBoolean())).thenReturn(page);
+        this.manager.getRefresher().add(getOwner()).run();
+        List<Pool> expectedModified = new LinkedList();
+
+        // Make sure that only the floating pool was regenerated
+        expectedModified.add(p);
+        verify(this.manager).updateFloatingPools(eq(new LinkedList()));
+        verify(this.manager).updatePoolsForSubscription(eq(expectedModified), eq(sub));
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
