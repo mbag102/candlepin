@@ -610,12 +610,6 @@ public class ConsumerResource {
      * @return
      */
     private void checkConsumerName(Consumer consumer) {
-
-        if (consumer.getName() == null) {
-            throw new BadRequestException(
-                i18n.tr("System name cannot be null."));
-        }
-
         // for now this applies to both types consumer
         if (consumer.getName().indexOf('#') == 0) {
             // this is a bouncycastle restriction

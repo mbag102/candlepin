@@ -47,7 +47,9 @@ public class CandlepinMessageInterpolator implements MessageInterpolator {
                     new ValidationMessage(I18n.marktr("must be greater than or equal to {0}"),
                         "value"));
                 put("{javax.validation.constraints.Digits.message}",
-                    new ValidationMessage(I18n.marktr("numeric value out of bounds (<{integer} digits>.<{fraction} digits> expected)"),
+                    new ValidationMessage(I18n.marktr(
+                        "numeric value out of bounds (<{integer} digits>" +
+                        ".<{fraction} digits> expected)"),
                         "integer", "fraction"));
                 put("{javax.validation.constraints.Future.message}",
                     new ValidationMessage(I18n.marktr("must be in the future")));
@@ -90,7 +92,6 @@ public class CandlepinMessageInterpolator implements MessageInterpolator {
                         "script"));
                 put("{org.hibernate.validator.constraints.URL.message}",
                     new ValidationMessage(I18n.marktr("must be a valid URL")));
-                    
             }
         };
 

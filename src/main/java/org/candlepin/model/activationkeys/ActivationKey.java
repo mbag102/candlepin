@@ -91,6 +91,7 @@ public class ActivationKey extends AbstractHibernateObject implements Owned {
     private String releaseVer;
 
     @Column(length = 255, nullable =  true)
+    @Size(max = 255)
     private String serviceLevel;
 
     public ActivationKey() {

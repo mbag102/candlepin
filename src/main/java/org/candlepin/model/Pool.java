@@ -146,12 +146,15 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
     private SourceStack sourceStack;
 
     @Column(nullable = false)
+    @NotNull
     private Long quantity;
 
     @Column(nullable = false)
+    @NotNull
     private Date startDate;
 
     @Column(nullable = false)
+    @NotNull
     private Date endDate;
 
     @Column(nullable = false)

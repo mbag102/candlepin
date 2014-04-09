@@ -197,5 +197,13 @@ describe 'Product Resource' do
     prod_ids_to_get.index(bulk_get_products[0]['id']).should_not == nil
     prod_ids_to_get.index(bulk_get_products[1]['id']).should_not == nil
   end
+
+  it 'should return correct exception for contraint violations' do
+    lambda {
+      prod = create_product(random_string("test_id"),
+                          random_string("test_name"),
+                          {:attributes => {:support_level => "a" * 256}})
+    }.should raise_exception(RestClient::BadRequest)
+  end
 end
 

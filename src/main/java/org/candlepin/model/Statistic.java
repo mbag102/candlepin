@@ -79,6 +79,7 @@ public class Statistic extends AbstractHibernateObject {
 
     //
     @Column(nullable = false)
+    @NotNull
     private int value;
 
     //
