@@ -41,8 +41,7 @@ JACKSON = ["#{JACKSON_NS}.core:jackson-annotations:jar:#{JACKSON_VERSION}",
             "#{JACKSON_NS}.module:jackson-module-jaxb-annotations:jar:#{JACKSON_VERSION}"]
 SUN_JAXB = 'com.sun.xml.bind:jaxb-impl:jar:2.1.12'
 JUNIT = ['junit:junit:jar:4.5', 'org.mockito:mockito-all:jar:1.8.5']
-LOGBACK = ['logback:logback-core:jar:1.0.13',
-           'logback:logback-classic:jar:1.0.13']
+LOGBACK = [group('logback-core', 'logback-classic', :under => 'ch.qos.logback', :version => '1.0.13')]
 HIBERNATE = ['org.hibernate:hibernate-core:jar:4.2.5.Final',
              'org.hibernate.common:hibernate-commons-annotations:jar:4.0.1.Final',
              'org.hibernate:hibernate-entitymanager:jar:4.2.5.Final',
