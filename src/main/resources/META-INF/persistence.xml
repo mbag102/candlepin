@@ -7,6 +7,14 @@
     <persistence-unit name="default" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.ejb.HibernatePersistence</provider>
         <validation-mode>NONE</validation-mode>
+        <!--
+            The NONE is intentional. Using CALLBACK or AUTO will create
+            a ValidatorFactory based on defaults when the EntityManagerFactory
+            is created. We create our own ValidatorFactory after the EntityManagerFactory
+            is created and add EventListeners using that ValidatorFactory to the
+            EntityManagerFactory. I couldn't find a way to have the Guice JPA
+            module perform injections for us.
+        -->
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.HSQLDialect"/>
             <property name="hibernate.connection.driver_class" value="org.hsqldb.jdbcDriver"/>

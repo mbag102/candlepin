@@ -127,8 +127,16 @@ public class CandlepinMessageInterpolator implements MessageInterpolator {
         }
     }
 
-    // You must use the Provider here otherwise you will end up with a stale
-    // I18n object!
+    /* You must use the Provider here otherwise you will end up with a stale
+     * I18n object.  The MessageInterpolator is only created by the
+     * ValidatorFactory when the servlet starts. I18n is in a request scope
+     * because when it gets created it looks at the HttpServletRequest
+     * (which is in request scope). According to
+     * http://code.google.com/p/google-guice/wiki/Scopes#Scopes_and_Concurrency
+     * when you are in a broad scope (e.g. the running servlet) and require an
+     * object in a narrow scope (e.g. I18n) you need to use the provider
+     * rather than injecting directly. My testing bears this out.
+     */
     private Provider<I18n> i18nProvider;
 
     @Inject
