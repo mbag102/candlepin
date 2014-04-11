@@ -78,20 +78,16 @@ import com.google.inject.matcher.Matchers;
  *  Tests to determine if the correct validation annotations are set in the bean classes.
  */
 public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
-    public HibernateValidationAnnotationTest() {
-    }
-
     private Matcher<AnnotatedElement> sizeAndNotNull = buildMatcher(Size.class, NotNull.class);
     private Matcher<AnnotatedElement> size = buildMatcher(Size.class);
     private Matcher<AnnotatedElement> notNull = buildMatcher(NotNull.class);
-
 
     @Test
     public void abstractCertificateTest() throws Exception {
         Map<Field, Matcher<AnnotatedElement>> fm = new HashMap<Field, Matcher<AnnotatedElement>>();
         fm.put(AbstractCertificate.class.getDeclaredField("key"), notNull);
         fm.put(AbstractCertificate.class.getDeclaredField("cert"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -102,7 +98,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(ActivationKey.class.getDeclaredField("owner"), notNull);
         fm.put(ActivationKey.class.getDeclaredField("releaseVer"), size);
         fm.put(ActivationKey.class.getDeclaredField("serviceLevel"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -112,7 +108,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(Branding.class.getDeclaredField("productId"), sizeAndNotNull);
         fm.put(Branding.class.getDeclaredField("name"), sizeAndNotNull);
         fm.put(Branding.class.getDeclaredField("type"), sizeAndNotNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -122,14 +118,14 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(Cdn.class.getDeclaredField("label"), sizeAndNotNull);
         fm.put(Cdn.class.getDeclaredField("name"), sizeAndNotNull);
         fm.put(Cdn.class.getDeclaredField("url"), sizeAndNotNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
     public void cdnCertificateTest() throws Exception {
         Map<Field, Matcher<AnnotatedElement>> fm = new HashMap<Field, Matcher<AnnotatedElement>>();
         fm.put(CdnCertificate.class.getDeclaredField("id"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -138,7 +134,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(CertificateSerial.class.getDeclaredField("id"), notNull);
         fm.put(CertificateSerial.class.getDeclaredField("revoked"), notNull);
         fm.put(CertificateSerial.class.getDeclaredField("collected"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -152,7 +148,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(Consumer.class.getDeclaredField("serviceLevel"), size);
         fm.put(Consumer.class.getDeclaredField("releaseVer"), size);
         fm.put(Consumer.class.getDeclaredField("facts"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -163,7 +159,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(ConsumerInstalledProduct.class.getDeclaredField("productName"), size);
         fm.put(ConsumerInstalledProduct.class.getDeclaredField("version"), size);
         fm.put(ConsumerInstalledProduct.class.getDeclaredField("arch"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -172,7 +168,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(ConsumerType.class.getDeclaredField("id"), notNull);
         fm.put(ConsumerType.class.getDeclaredField("label"), sizeAndNotNull);
         fm.put(ConsumerType.class.getDeclaredField("manifest"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -189,7 +185,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(Content.class.getDeclaredField("gpgUrl"), size);
         fm.put(Content.class.getDeclaredField("modifiedProductIds"), size);
         fm.put(Content.class.getDeclaredField("arches"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -199,7 +195,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(ContentOverride.class.getDeclaredField("contentLabel"), sizeAndNotNull);
         fm.put(ContentOverride.class.getDeclaredField("name"), sizeAndNotNull);
         fm.put(ContentOverride.class.getDeclaredField("value"), sizeAndNotNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -210,7 +206,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(DeletedConsumer.class.getDeclaredField("ownerId"), sizeAndNotNull);
         fm.put(DeletedConsumer.class.getDeclaredField("ownerKey"), size);
         fm.put(DeletedConsumer.class.getDeclaredField("ownerDisplayName"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -219,7 +215,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(DistributorVersion.class.getDeclaredField("id"), notNull);
         fm.put(DistributorVersion.class.getDeclaredField("name"), sizeAndNotNull);
         fm.put(DistributorVersion.class.getDeclaredField("displayName"), sizeAndNotNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -227,7 +223,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         Map<Field, Matcher<AnnotatedElement>> fm = new HashMap<Field, Matcher<AnnotatedElement>>();
         fm.put(DistributorVersionCapability.class.getDeclaredField("id"), notNull);
         fm.put(DistributorVersionCapability.class.getDeclaredField("name"), sizeAndNotNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -237,7 +233,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(Entitlement.class.getDeclaredField("owner"), notNull);
         fm.put(Entitlement.class.getDeclaredField("consumer"), notNull);
         fm.put(Entitlement.class.getDeclaredField("pool"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -245,7 +241,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         Map<Field, Matcher<AnnotatedElement>> fm = new HashMap<Field, Matcher<AnnotatedElement>>();
         fm.put(EntitlementCertificate.class.getDeclaredField("id"), notNull);
         fm.put(EntitlementCertificate.class.getDeclaredField("entitlement"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -255,7 +251,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(Environment.class.getDeclaredField("owner"), notNull);
         fm.put(Environment.class.getDeclaredField("name"), sizeAndNotNull);
         fm.put(Environment.class.getDeclaredField("description"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -264,7 +260,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(EnvironmentContent.class.getDeclaredField("id"), notNull);
         fm.put(EnvironmentContent.class.getDeclaredField("environment"), notNull);
         fm.put(EnvironmentContent.class.getDeclaredField("contentId"), sizeAndNotNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -273,7 +269,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(ExporterMetadata.class.getDeclaredField("id"), notNull);
         fm.put(ExporterMetadata.class.getDeclaredField("exported"), notNull);
         fm.put(ExporterMetadata.class.getDeclaredField("type"), sizeAndNotNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -283,7 +279,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(GuestId.class.getDeclaredField("guestId"), sizeAndNotNull);
         fm.put(GuestId.class.getDeclaredField("consumer"), notNull);
         fm.put(GuestId.class.getDeclaredField("attributes"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -293,14 +289,14 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(HypervisorId.class.getDeclaredField("hypervisorId"), sizeAndNotNull);
         fm.put(HypervisorId.class.getDeclaredField("consumer"), notNull);
         fm.put(HypervisorId.class.getDeclaredField("owner"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
     public void identityCertificateTest() throws Exception {
         Map<Field, Matcher<AnnotatedElement>> fm = new HashMap<Field, Matcher<AnnotatedElement>>();
         fm.put(IdentityCertificate.class.getDeclaredField("id"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -310,7 +306,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(ImportRecord.class.getDeclaredField("statusMessage"), size);
         fm.put(ImportRecord.class.getDeclaredField("fileName"), size);
         fm.put(ImportRecord.class.getDeclaredField("generatedBy"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -323,14 +319,14 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(ImportUpstreamConsumer.class.getDeclaredField("ownerId"), notNull);
         fm.put(ImportUpstreamConsumer.class.getDeclaredField("prefixUrlWeb"), size);
         fm.put(ImportUpstreamConsumer.class.getDeclaredField("prefixUrlApi"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
     public void keyPairTest() throws Exception {
         Map<Field, Matcher<AnnotatedElement>> fm = new HashMap<Field, Matcher<AnnotatedElement>>();
         fm.put(KeyPair.class.getDeclaredField("id"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -342,7 +338,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(Owner.class.getDeclaredField("contentPrefix"), size);
         fm.put(Owner.class.getDeclaredField("defaultServiceLevel"), size);
         fm.put(Owner.class.getDeclaredField("logLevel"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -352,7 +348,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(PermissionBlueprint.class.getDeclaredField("owner"), notNull);
         fm.put(PermissionBlueprint.class.getDeclaredField("role"), notNull);
         fm.put(PermissionBlueprint.class.getDeclaredField("type"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -373,7 +369,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(Pool.class.getDeclaredField("orderNumber"), size);
         fm.put(Pool.class.getDeclaredField("productName"), size);
         fm.put(Pool.class.getDeclaredField("derivedProductName"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -382,7 +378,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(Product.class.getDeclaredField("id"), notNull);
         fm.put(Product.class.getDeclaredField("name"), sizeAndNotNull);
         fm.put(Product.class.getDeclaredField("dependentProductIds"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -392,7 +388,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(ProductAttribute.class.getDeclaredField("name"), sizeAndNotNull);
         fm.put(ProductAttribute.class.getDeclaredField("value"), size);
         fm.put(ProductAttribute.class.getDeclaredField("product"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -400,7 +396,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         Map<Field, Matcher<AnnotatedElement>> fm = new HashMap<Field, Matcher<AnnotatedElement>>();
         fm.put(ProductCertificate.class.getDeclaredField("id"), notNull);
         fm.put(ProductCertificate.class.getDeclaredField("product"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -408,14 +404,14 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         Map<Field, Matcher<AnnotatedElement>> fm = new HashMap<Field, Matcher<AnnotatedElement>>();
         fm.put(ProductContent.class.getDeclaredField("product"), notNull);
         fm.put(ProductContent.class.getDeclaredField("content"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
     public void productPoolAttributeTest() throws Exception {
         Map<Field, Matcher<AnnotatedElement>> fm = new HashMap<Field, Matcher<AnnotatedElement>>();
         fm.put(ProductPoolAttribute.class.getDeclaredField("productId"), notNull);
-        runMap(fm);
+        assertMap(fm);
 
     }
     @Test
@@ -425,7 +421,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(ProvidedProduct.class.getDeclaredField("productId"), sizeAndNotNull);
         fm.put(ProvidedProduct.class.getDeclaredField("productName"), sizeAndNotNull);
         fm.put(ProvidedProduct.class.getDeclaredField("pool"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -433,7 +429,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         Map<Field, Matcher<AnnotatedElement>> fm = new HashMap<Field, Matcher<AnnotatedElement>>();
         fm.put(Role.class.getDeclaredField("id"), notNull);
         fm.put(Role.class.getDeclaredField("name"), sizeAndNotNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -441,7 +437,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         Map<Field, Matcher<AnnotatedElement>> fm = new HashMap<Field, Matcher<AnnotatedElement>>();
         fm.put(Rules.class.getDeclaredField("id"), notNull);
         fm.put(Rules.class.getDeclaredField("version"), sizeAndNotNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -451,7 +447,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(SourceStack.class.getDeclaredField("sourceStackId"), sizeAndNotNull);
         fm.put(SourceStack.class.getDeclaredField("sourceConsumer"), notNull);
         fm.put(SourceStack.class.getDeclaredField("derivedPool"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -462,7 +458,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(Statistic.class.getDeclaredField("valueReference"), size);
         fm.put(Statistic.class.getDeclaredField("value"), notNull);
         fm.put(Statistic.class.getDeclaredField("ownerId"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -480,14 +476,14 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(Subscription.class.getDeclaredField("upstreamPoolId"), size);
         fm.put(Subscription.class.getDeclaredField("upstreamEntitlementId"), size);
         fm.put(Subscription.class.getDeclaredField("upstreamConsumerId"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
     public void subscriptionsCertificateTest() throws Exception {
         Map<Field, Matcher<AnnotatedElement>> fm = new HashMap<Field, Matcher<AnnotatedElement>>();
         fm.put(SubscriptionsCertificate.class.getDeclaredField("id"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -500,7 +496,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(UpstreamConsumer.class.getDeclaredField("ownerId"), notNull);
         fm.put(UpstreamConsumer.class.getDeclaredField("prefixUrlWeb"), size);
         fm.put(UpstreamConsumer.class.getDeclaredField("prefixUrlApi"), size);
-        runMap(fm);
+        assertMap(fm);
     }
 
     @Test
@@ -510,10 +506,10 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         fm.put(User.class.getDeclaredField("username"), sizeAndNotNull);
         fm.put(User.class.getDeclaredField("hashedPassword"), size);
         fm.put(User.class.getDeclaredField("superAdmin"), notNull);
-        runMap(fm);
+        assertMap(fm);
     }
 
-    private void runMap(Map<Field, Matcher<AnnotatedElement>> fm) {
+    private void assertMap(Map<Field, Matcher<AnnotatedElement>> fm) {
         for (Map.Entry<Field, Matcher<AnnotatedElement>> entry : fm.entrySet()) {
             Matcher<AnnotatedElement> matcher = entry.getValue();
             Field field = entry.getKey();
@@ -522,7 +518,7 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
     }
 
     // If you send in a non annotation in the class list, this will blow up.
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private Matcher<AnnotatedElement> buildMatcher(Class... annotationList) {
         if (annotationList.length == 0) {
             throw new IllegalArgumentException("annotationList cannot be empty");
@@ -537,13 +533,5 @@ public class HibernateValidationAnnotationTest extends DatabaseTestFixture{
         }
 
         return m;
-    }
-
-    private String longString() {
-        StringBuffer result = new StringBuffer();
-        for (int i = 0; i < 256; i++) {
-            result.append("e");
-        }
-        return result.toString();
     }
 }

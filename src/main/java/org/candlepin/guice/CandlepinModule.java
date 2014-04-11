@@ -130,7 +130,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.google.inject.name.Named;
 import com.google.inject.name.Names;
 import com.google.inject.persist.jpa.JpaPersistModule;
 
@@ -152,14 +151,12 @@ public class CandlepinModule extends AbstractModule {
 
         Config config = new Config();
         bind(Config.class).asEagerSingleton();
-        install(new JpaPersistModule("default").properties(config
-            .jpaConfiguration(config)));
+        install(new JpaPersistModule("default").properties(
+            config.jpaConfiguration(config)));
         bind(JPAInitializer.class).asEagerSingleton();
 
-        bind(PKIUtility.class).to(BouncyCastlePKIUtility.class)
-            .asEagerSingleton();
-        bind(PKIReader.class).to(BouncyCastlePKIReader.class)
-            .asEagerSingleton();
+        bind(PKIUtility.class).to(BouncyCastlePKIUtility.class).asEagerSingleton();
+        bind(PKIReader.class).to(BouncyCastlePKIReader.class).asEagerSingleton();
         bind(X509ExtensionUtil.class);
         bind(CrlGenerator.class);
         bind(ConsumerResource.class);
@@ -239,11 +236,9 @@ public class CandlepinModule extends AbstractModule {
         // flexible end date for identity certificates
         bind(Function.class).annotatedWith(Names.named("endDateGenerator"))
             .to(ExpiryDateFunction.class).in(Singleton.class);
-    }
 
-    @Provides @Named("ValidationProperties")
-    protected Properties getValidationProperties() {
-        return new Properties();
+        bind(Properties.class).annotatedWith(Names.named("ValidationProperties"))
+            .toInstance(new Properties());
     }
 
     @Provides
