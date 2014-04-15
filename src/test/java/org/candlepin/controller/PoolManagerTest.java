@@ -215,6 +215,7 @@ public class PoolManagerTest {
         // Should be unchanged
         Pool p = TestUtil.createPool(product);
         p.setSubscriptionId(sub.getId());
+        p.setOwner(sub.getOwner());
         pools.add(p);
 
         when(mockSubAdapter.getSubscriptions(any(Owner.class))).thenReturn(
@@ -234,7 +235,8 @@ public class PoolManagerTest {
         // Make sure that only the floating pool was regenerated
         expectedModified.add(p);
         verify(this.manager).updateFloatingPools(eq(new LinkedList()));
-        verify(this.manager).updatePoolsForSubscription(eq(expectedModified), eq(sub));
+        verify(this.manager).updatePoolsForSubscription(
+            eq(expectedModified), eq(sub), eq(false));
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -417,6 +419,7 @@ public class PoolManagerTest {
         Pool p = TestUtil.createPool(s.getProduct());
         p.setSubscriptionId(s.getId());
         p.setAttribute(PoolManager.DELETE_FLAG, "true");
+        p.setOwner(s.getOwner());
         pools.add(p);
 
         when(mockSubAdapter.getSubscriptions(any(Owner.class))).thenReturn(
