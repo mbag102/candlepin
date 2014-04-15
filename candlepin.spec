@@ -71,6 +71,7 @@ BuildRequires: guava >= 0:13.0
 BuildRequires: apache-commons-collections
 BuildRequires: mvn(org.slf4j:slf4j-api)  >= 0:1.7.4
 BuildRequires: mvn(org.slf4j:jcl-over-slf4j)  >= 0:1.7.4
+BuildRequires: mvn(ch.qos.logback:logback-classic)
 %else
 BuildRequires: ant-nodeps >= 0:1.7.0
 BuildRequires: jaxb-impl
@@ -78,6 +79,7 @@ BuildRequires: google-collections >= 0:1.0
 BuildRequires: commons-collections >= 3.1
 BuildRequires: slf4j-api >= 0:1.7.5
 BuildRequires: jcl-over-slf4j >= 0:1.7.5
+BuildRequires: logback-classic
 %endif
 
 BuildRequires: javassist >= 3.12.0
@@ -88,7 +90,6 @@ BuildRequires: hibernate3-commons-annotations >= 0:4.0.1
 BuildRequires: resteasy >= 0:2.3.1
 BuildRequires: hornetq >= 0:2.3.5
 BuildRequires: google-guice >= 0:3.0
-BuildRequires: logback-classic
 BuildRequires: jakarta-commons-lang
 BuildRequires: jakarta-commons-io
 BuildRequires: apache-commons-codec
@@ -139,6 +140,7 @@ Requires: guava >= 0:13.0
 Requires: apache-commons-collections
 Requires: mvn(org.slf4j:slf4j-api)  >= 0:1.7.4
 Requires: mvn(org.slf4j:jcl-over-slf4j)  >= 0:1.7.4
+Requires: mvn(ch.qos.logback:logback-classic)
 %else
 Requires: jaxb-impl
 Requires: google-collections >= 0:1.0
@@ -146,6 +148,7 @@ Requires: commons-collections >= 3.1
 Requires: slf4j-api >= 0:1.7.5-4
 # apache-mime4j uses commons-logging, so we have to provide a slf4j bridge
 Requires: jcl-over-slf4j >= 0:1.7.5
+Requires: logback-classic
 %endif
 Requires: hibernate4-core >= 0:4.2.5
 Requires: hibernate4-entitymanager >= 0:4.2.5
@@ -164,7 +167,6 @@ Requires: jackson-module-jaxb-annotations >= %{jackson_version}
 Requires: hornetq >= 0:2.3.5
 Requires: netty
 Requires: oauth >= 20100601-4
-Requires: logback-classic
 Requires: scannotation
 Requires: jakarta-commons-lang
 Requires: jakarta-commons-io

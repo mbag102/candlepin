@@ -43,8 +43,8 @@ javax.inject
 jboss-logging
 jta
 log4j
-logback-classic
-logback-core
+logback/logback-classic
+logback/logback-core
 netty
 oauth/oauth
 oauth/oauth-provider
