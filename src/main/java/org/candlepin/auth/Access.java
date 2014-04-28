@@ -14,11 +14,9 @@
  */
 package org.candlepin.auth;
 
-import org.candlepin.resteasy.interceptor.AuthInterceptor;
-
 /**
  * Enumeration of the access rights used in the Candlepin permission model.
- * @see AuthInterceptor
+ * @see org.candlepin.resteasy.interceptor.AuthInterceptor
  */
 public enum Access {
     // TODO: NONE - kind of a hack for Verify to have a default access type...

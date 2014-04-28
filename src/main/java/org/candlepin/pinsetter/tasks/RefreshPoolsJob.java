@@ -17,7 +17,6 @@ package org.candlepin.pinsetter.tasks;
 import static org.quartz.JobBuilder.newJob;
 
 import org.candlepin.controller.PoolManager;
-import org.candlepin.controller.Refresher;
 import org.candlepin.model.Owner;
 import org.candlepin.model.OwnerCurator;
 import org.candlepin.pinsetter.core.model.JobStatus;
@@ -56,7 +55,7 @@ public class RefreshPoolsJob extends UniqueByOwnerJob {
     /**
      * {@inheritDoc}
      *
-     * Executes {@link Refresher#run()}
+     * Executes {@link org.candlepin.controller.Refresher#run()}
      * as a pinsetter job.
      *
      * @param context the job's execution context
