@@ -23,6 +23,8 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 import javax.xml.bind.annotation.XmlTransient;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -41,14 +43,17 @@ public class ProductAttribute extends AbstractHibernateObject implements Attribu
 
     @Id
     @GeneratedValue(generator = "system-uuid")
-    @GenericGenerator(name = "system-uuid", strategy = "uuid2")
-    @Column(length = 37)
+    @GenericGenerator(name = "system-uuid", strategy = "uuid")
+    @NotNull
     protected String id;
 
     @Column(nullable = false)
+    @Size(max = 255)
+    @NotNull
     protected String name;
 
     @Column
+    @Size(max = 255)
     protected String value;
 
 
@@ -56,6 +61,7 @@ public class ProductAttribute extends AbstractHibernateObject implements Attribu
     @ForeignKey(name = "fk_product_attrib_product_id")
     @JoinColumn(nullable = false)
     @Index(name = "cp_prodattribute_prod_fk_idx")
+    @NotNull
     private Product product;
 
     public ProductAttribute() {

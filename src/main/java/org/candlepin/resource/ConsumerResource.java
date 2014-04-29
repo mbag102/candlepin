@@ -14,6 +14,38 @@
  */
 package org.candlepin.resource;
 
+import java.io.File;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HEAD;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import org.apache.commons.lang.StringUtils;
 import org.candlepin.audit.Event;
 import org.candlepin.audit.EventAdapter;
 import org.candlepin.audit.EventFactory;
@@ -38,16 +70,12 @@ import org.candlepin.model.CdnCurator;
 import org.candlepin.model.CertificateSerialDto;
 import org.candlepin.model.Consumer;
 import org.candlepin.model.ConsumerCapability;
+import org.candlepin.model.ConsumerContentOverride;
+import org.candlepin.model.ConsumerContentOverrideCurator;
 import org.candlepin.model.ConsumerCurator;
 import org.candlepin.model.ConsumerInstalledProduct;
 import org.candlepin.model.ConsumerType;
 import org.candlepin.model.ConsumerType.ConsumerTypeEnum;
-import org.candlepin.model.activationkeys.ActivationKey;
-import org.candlepin.model.activationkeys.ActivationKeyContentOverride;
-import org.candlepin.model.activationkeys.ActivationKeyCurator;
-import org.candlepin.model.activationkeys.ActivationKeyPool;
-import org.candlepin.model.ConsumerContentOverride;
-import org.candlepin.model.ConsumerContentOverrideCurator;
 import org.candlepin.model.ConsumerTypeCurator;
 import org.candlepin.model.ContentCurator;
 import org.candlepin.model.DeleteResult;
@@ -72,6 +100,10 @@ import org.candlepin.model.PoolQuantity;
 import org.candlepin.model.Product;
 import org.candlepin.model.Release;
 import org.candlepin.model.User;
+import org.candlepin.model.activationkeys.ActivationKey;
+import org.candlepin.model.activationkeys.ActivationKeyContentOverride;
+import org.candlepin.model.activationkeys.ActivationKeyCurator;
+import org.candlepin.model.activationkeys.ActivationKeyPool;
 import org.candlepin.paging.Page;
 import org.candlepin.paging.PageRequest;
 import org.candlepin.paging.Paginate;
@@ -94,13 +126,9 @@ import org.candlepin.service.SubscriptionServiceAdapter;
 import org.candlepin.service.UserServiceAdapter;
 import org.candlepin.sync.ExportCreationException;
 import org.candlepin.sync.Exporter;
+import org.candlepin.util.ServiceLevelValidator;
 import org.candlepin.util.Util;
 import org.candlepin.version.CertVersionConflictException;
-
-import com.google.inject.Inject;
-import com.google.inject.persist.Transactional;
-
-import org.apache.commons.lang.StringUtils;
 import org.jboss.resteasy.annotations.providers.jaxb.Wrapped;
 import org.jboss.resteasy.plugins.providers.atom.Feed;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
@@ -109,35 +137,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xnap.commons.i18n.I18n;
 
-import java.io.File;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HEAD;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import com.google.inject.Inject;
+import com.google.inject.persist.Transactional;
 
 /**
  * API Gateway for Consumers
@@ -177,6 +178,7 @@ public class ConsumerResource {
     private QuantityRules quantityRules;
     private CalculatedAttributesUtil calculatedAttributesUtil;
     private ConsumerContentOverrideCurator consumerContentOverrideCurator;
+    private ServiceLevelValidator serviceLevelValidator;
 
     @Inject
     public ConsumerResource(ConsumerCurator consumerCurator,
@@ -197,7 +199,8 @@ public class ConsumerResource {
         Config config, QuantityRules quantityRules,
         ContentCurator contentCurator,
         CdnCurator cdnCurator, CalculatedAttributesUtil calculatedAttributesUtil,
-        ConsumerContentOverrideCurator consumerContentOverrideCurator) {
+        ConsumerContentOverrideCurator consumerContentOverrideCurator,
+        ServiceLevelValidator serviceLevelValidator) {
 
         this.consumerCurator = consumerCurator;
         this.consumerTypeCurator = consumerTypeCurator;
@@ -231,12 +234,13 @@ public class ConsumerResource {
         this.quantityRules = quantityRules;
         this.calculatedAttributesUtil = calculatedAttributesUtil;
         this.consumerContentOverrideCurator = consumerContentOverrideCurator;
+        this.serviceLevelValidator = serviceLevelValidator;
     }
 
     /**
-     * List available Consumers
+     * Retrieves a list of the Consumers
      *
-     * @return list of available consumers.
+     * @return list of Consumer objects
      * @httpcode 400
      * @httpcode 404
      * @httpcode 200
@@ -277,6 +281,8 @@ public class ConsumerResource {
     }
 
     /**
+     * Checks for the existence of a Consumer
+     * <p>
      * This method is used to check if a consumer is available on a particular
      * shard.  There is no need to do a full GET for the consumer for this check.
      *
@@ -295,10 +301,40 @@ public class ConsumerResource {
     }
 
     /**
-     * Return the consumer identified by the given uuid.
+     * Retrieves a single Consumer
+     * <p>
+     * <pre>
+     * {
+     *   "id" : "database_id",
+     *   "uuid" : "consumer_id",
+     *   "name" : "client.rdu.redhat.com",
+     *   "username" : "admin",
+     *   "entitlementStatus" : "invalid",
+     *   "serviceLevel" : "",
+     *   "releaseVer" : {},
+     *   "type" : {
+     *     "id" : "database_id",
+     *     "label" : "system",
+     *     "manifest" : false
+     *   },
+     *   "owner" : {},
+     *   "environment" : null,
+     *   "entitlementCount" : 1,
+     *   "lastCheckin" : "",
+     *   "installedProducts" : [],
+     *   "canActivate" : false,
+     *   "guestIds" : [ ],
+     *   "capabilities" : [ ],
+     *   "hypervisorId" : null,
+     *   "autoheal" : true,
+     *   "href" : "/consumers/consumer_id",
+     *   "created" : [date],
+     *   "updated" : [date]
+     * }
+     * </pre>
      *
-     * @param uuid uuid of the consumer sought.
-     * @return the consumer identified by the given uuid.
+     * @param uuid uuid of the consumer sought
+     * @return a Consumer object
      * @httpcode 404
      * @httpcode 200
      */
@@ -337,7 +373,9 @@ public class ConsumerResource {
     }
 
     /**
-     * Create a Consumer. NOTE: Opening this method up to everyone, as we have
+     * Creates a Consumer
+     * <p>
+     * NOTE: Opening this method up to everyone, as we have
      * nothing we can reliably verify in the method signature. Instead we have
      * to figure out what owner this consumer is destined for (due to backward
      * compatability with existing clients which do not specify an owner during
@@ -345,7 +383,7 @@ public class ConsumerResource {
      * method itself.
      *
      * @param consumer Consumer metadata
-     * @return newly created Consumer
+     * @return a Consumer object
      * @throws BadRequestException generic exception type for web services We
      *         are calling this "registerConsumer" in the api discussions
      * @httpcode 400
@@ -367,11 +405,11 @@ public class ConsumerResource {
         Set<String> keyStrings = splitKeys(activationKeys);
 
         // Only let NoAuth principals through if there are activation keys to consider:
-        if ((principal instanceof NoAuthPrincipal) && (keyStrings.size() == 0)) {
+        if ((principal instanceof NoAuthPrincipal) && keyStrings.isEmpty()) {
             throw new ForbiddenException(i18n.tr("Insufficient permissions"));
         }
 
-        if (keyStrings.size() > 0) {
+        if (!keyStrings.isEmpty()) {
             if (ownerKey == null) {
                 throw new BadRequestException(
                     i18n.tr("Must specify an org to register with activation keys."));
@@ -386,11 +424,9 @@ public class ConsumerResource {
         // Raise an exception if any keys were specified which do not exist
         // for this owner.
         List<ActivationKey> keys = new ArrayList<ActivationKey>();
-        if (keyStrings.size() > 0) {
-            for (String keyString : keyStrings) {
-                ActivationKey key = findKey(keyString, owner);
-                keys.add(key);
-            }
+        for (String keyString : keyStrings) {
+            ActivationKey key = findKey(keyString, owner);
+            keys.add(key);
         }
 
         userName = setUserName(consumer, principal, userName);
@@ -452,7 +488,7 @@ public class ConsumerResource {
             hvsrId.setConsumer(consumer);
         }
 
-        checkServiceLevel(owner, consumer.getServiceLevel());
+        serviceLevelValidator.validate(owner, consumer.getServiceLevel());
 
         try {
             consumer = consumerCurator.create(consumer);
@@ -490,6 +526,7 @@ public class ConsumerResource {
             handleActivationKeyPools(consumer, ak.getPools());
             handleActivationKeyOverrides(consumer, ak.getContentOverrides());
             handleActivationKeyRelease(consumer, ak.getReleaseVer());
+            handleActivationKeyServiceLevel(consumer, ak.getServiceLevel(), ak.getOwner());
         }
     }
 
@@ -524,11 +561,19 @@ public class ConsumerResource {
         }
     }
 
+    private void handleActivationKeyServiceLevel(Consumer consumer,
+            String level, Owner owner) {
+        if (!StringUtils.isBlank(level)) {
+            serviceLevelValidator.validate(owner, level);
+            consumer.setServiceLevel(level);
+        }
+    }
+
     /**
      * @param consumer
      * @param principal
      * @param userName
-     * @return
+     * @return a String object
      */
     private String setUserName(Consumer consumer, Principal principal,
         String userName) {
@@ -545,7 +590,7 @@ public class ConsumerResource {
     /**
      * @param existing
      * @param update
-     * @return
+     * @return a String object
      */
     private boolean updateCapabilities(Consumer existing, Consumer update) {
         boolean change = false;
@@ -596,37 +641,15 @@ public class ConsumerResource {
      * @param consumer
      * @param principal
      * @param userName
-     * @return
+     * @return a String object
      */
     private void checkConsumerName(Consumer consumer) {
-
-        if (consumer.getName() == null) {
-            throw new BadRequestException(
-                i18n.tr("System name cannot be null."));
-        }
-
         // for now this applies to both types consumer
-        if (consumer.getName().indexOf('#') == 0) {
+        if (consumer.getName() != null &&
+            consumer.getName().indexOf('#') == 0) {
             // this is a bouncycastle restriction
             throw new BadRequestException(
                 i18n.tr("System name cannot begin with # character"));
-        }
-    }
-
-    private void checkServiceLevel(Owner owner, String serviceLevel)
-        throws BadRequestException {
-        if (serviceLevel != null &&
-            !serviceLevel.trim().equals("")) {
-            for (String level : poolManager.retrieveServiceLevelsForOwner(owner, false)) {
-                if (serviceLevel.equalsIgnoreCase(level)) {
-                    return;
-                }
-            }
-            throw new BadRequestException(
-                i18n.tr(
-                    "Service level ''{0}'' is not available " +
-                    "to units of organization {1}.",
-                    serviceLevel, owner.getKey()));
         }
     }
 
@@ -797,6 +820,8 @@ public class ConsumerResource {
     }
 
     /**
+     * Updates a Consumer
+     *
      * @httpcode 404
      * @httpcode 200
      */
@@ -872,7 +897,7 @@ public class ConsumerResource {
             if (log.isDebugEnabled()) {
                 log.debug("   Updating consumer service level setting.");
             }
-            checkServiceLevel(toUpdate.getOwner(), level);
+            serviceLevelValidator.validate(toUpdate.getOwner(), level);
             toUpdate.setServiceLevel(level);
             changesMade = true;
         }
@@ -950,11 +975,12 @@ public class ConsumerResource {
 
     /**
      * Check if the consumers facts have changed. If they do not appear to have been
-     * specified in this PUT, skip updating facts entirely.
+     * specified in this PUT, skip updating facts entirely. It returns true if facts
+     * were included in request and have changed
      *
      * @param existing existing consumer
      * @param incoming incoming consumer
-     * @return True if facts were included in request and have changed.
+     * @return a boolean
      */
     private boolean checkForFactsUpdate(Consumer existing, Consumer incoming) {
         if (incoming.getFacts() == null) {
@@ -976,10 +1002,12 @@ public class ConsumerResource {
     /**
      * Check if the consumers installed products have changed. If they do not appear to
      * have been specified in this PUT, skip updating installed products entirely.
+     * <p>
+     * It will return true if installed products were included in request and have changed.
      *
      * @param existing existing consumer
      * @param incoming incoming consumer
-     * @return True if installed products were included in request and have changed.
+     * @return a boolean
      */
     private boolean checkForInstalledProductsUpdate(Consumer existing, Consumer incoming) {
 
@@ -1014,10 +1042,11 @@ public class ConsumerResource {
      * all entitlements related to the other host are revoked. Also, if a
      * guest ID is removed from this host, then all entitlements related to
      * this host are revoked from the guest.
+     * Will return true if guest IDs were included in request and have changed.
      *
      * @param existing existing consumer
      * @param incoming incoming consumer
-     * @return True if guest IDs were included in request and have changed.
+     * @return a boolean
      */
     private boolean checkForGuestsUpdate(Consumer existing, Consumer incoming) {
 
@@ -1179,7 +1208,7 @@ public class ConsumerResource {
     }
 
     /**
-     * delete the consumer.
+     * Removes a Consumer
      *
      * @param uuid uuid of the consumer to delete.
      * @httpcode 403
@@ -1216,10 +1245,10 @@ public class ConsumerResource {
     }
 
     /**
-     * Return the entitlement certificate for the given consumer.
+     * Retrieves a list of Entitlement Certificates for the Consumer
      *
      * @param consumerUuid UUID of the consumer
-     * @return list of the client certificates for the given consumer.
+     * @return a list of EntitlementCertificate  objects
      * @httpcode 404
      * @httpcode 200
      */
@@ -1252,7 +1281,9 @@ public class ConsumerResource {
     }
 
     /**
-     * @return a File of exported certificates
+     * Retrieves a Compressed File of Entitlement Certificates
+     *
+     * @return a File of EntitlementCertificate objects
      * @httpcode 500
      * @httpcode 404
      * @httpcode 200
@@ -1312,8 +1343,8 @@ public class ConsumerResource {
     }
 
     private Set<String> splitKeys(String activationKeyString) {
-        Set<String> keys = new HashSet<String>();
-        if (activationKeyString != null && !activationKeyString.equals("")) {
+        Set<String> keys = new LinkedHashSet<String>();
+        if (activationKeyString != null) {
             for (String s : activationKeyString.split(",")) {
                 keys.add(s);
             }
@@ -1322,12 +1353,14 @@ public class ConsumerResource {
     }
 
     /**
-     * Return the client certificate metadatthat a for the given consumer. This
+     * Retrieves a list of Certiticate Serials
+     * <p>
+     * Return the client certificate metadata a for the given consumer. This
      * is a small subset of data clients can use to determine which certificates
      * they need to update/fetch.
      *
      * @param consumerUuid UUID of the consumer
-     * @return list of the client certificate metadata for the given consumer.
+     * @return a list of CertificateSerial objects
      * @httpcode 404
      * @httpcode 200
      */
@@ -1356,20 +1389,23 @@ public class ConsumerResource {
     }
 
     /**
-     * Request an entitlement.
-     *
+     * Binds Entitlements
+     * <p>
      * If a pool ID is specified, we know we're binding to that exact pool. Specifying
      * an entitle date in this case makes no sense and will throw an error.
-     *
+     * <p>
      * If a list of product IDs are specified, we attempt to auto-bind to subscriptions
      * which will provide those products. An optional date can be specified allowing
      * the consumer to get compliant for some date in the future. If no date is specified
      * we assume the current date.
-     *
+     * <p>
      * If neither a pool nor an ID is specified, this is a healing request. The path
      * is similar to the bind by products, but in this case we use the installed products
      * on the consumer, and their current compliant status, to determine which product IDs
      * should be requested. The entitle date is used the same as with bind by products.
+     * <p>
+     * The Respose will contain a list of Entitlement objects if async is false, or a
+     * JobDetail object if async is true.
      *
      * @param consumerUuid Consumer identifier to be entitled
      * @param poolIdString Entitlement pool id.
@@ -1377,8 +1413,7 @@ public class ConsumerResource {
      * @param emailLocale locale for email address.
      * @param async True if bind should be asynchronous, defaults to false.
      * @param entitleDateStr specific date to entitle by.
-     * @return Response with a list of entitlements or if async is true, a
-     *         JobDetail.
+     * @return a Response object
      * @httpcode 400
      * @httpcode 403
      * @httpcode 404
@@ -1503,19 +1538,21 @@ public class ConsumerResource {
     }
 
     /**
-     * Request a list of pools and quantities that would result in an actual auto-bind.
-     *
+     * Retrieves a list of Pools and quantities that would be the result of an auto-bind.
+     * <p>
      * This is a dry run of an autobind. It allows the client to see what would be the
      * result of an autobind without executing it. It can only do this for the prevously
      * established list of installed products for the consumer
-     *
+     * <p>
      * If a service level is included in the request, then that level will override the
      * one stored on the consumer. If no service level is included then the existing
      * one will be used.
+     * <p>
+     * The Response has a list of PoolQuantity objects
      *
      * @param consumerUuid Consumer identifier to be entitled
      * @param serviceLevel String service level override to be used for run
-     * @return Response with a list of PoolQuantities containing the pool and number.
+     * @return a Response object
      * @httpcode 400
      * @httpcode 403
      * @httpcode 404
@@ -1535,7 +1572,7 @@ public class ConsumerResource {
         List<PoolQuantity> dryRunPools = new ArrayList<PoolQuantity>();
 
         try {
-            checkServiceLevel(consumer.getOwner(), serviceLevel);
+            serviceLevelValidator.validate(consumer.getOwner(), serviceLevel);
             dryRunPools = entitler.getDryRun(consumer, serviceLevel);
         }
         catch (ForbiddenException fe) {
@@ -1562,6 +1599,8 @@ public class ConsumerResource {
     }
 
     /**
+     * Retrives a list of Entitlements
+     *
      * @return a list of Entitlement objects
      * @httpcode 400
      * @httpcode 404
@@ -1604,7 +1643,9 @@ public class ConsumerResource {
     }
 
     /**
-     * @return an Owner
+     * Retrieves the Owner associated to a Consumer
+     *
+     * @return an Owner object
      * @httpcode 404
      * @httpcode 200
      */
@@ -1619,10 +1660,12 @@ public class ConsumerResource {
     }
 
     /**
-     * Unbind all entitlements.
+     * Unbinds all Entitlements for a Consumer
+     * <p>
+     * Result contains the total number of entitlements unbound.
      *
      * @param consumerUuid Unique id for the Consumer.
-     * @return the total number of entitlements unbound.
+     * @return a DeleteResult object
      * @httpcode 404
      * @httpcode 200
      */
@@ -1653,7 +1696,9 @@ public class ConsumerResource {
     }
 
     /**
-     * Remove an entitlement by ID.
+     * Removes an Entitlement from a Consumer
+     * <p>
+     * By the Entitlement ID
      *
      * @param dbid the entitlement to delete.
      * @httpcode 403
@@ -1680,6 +1725,10 @@ public class ConsumerResource {
     }
 
     /**
+     * Removes an Entitlement from a Consumer
+     * <p>
+     * By the Certificate Serial
+     *
      * @httpcode 403
      * @httpcode 404
      * @httpcode 200
@@ -1704,6 +1753,8 @@ public class ConsumerResource {
     }
 
     /**
+     * Retrieves a list of Consumer Events
+     *
      * @return a list of Event objects
      * @httpcode 404
      * @httpcode 200
@@ -1723,7 +1774,9 @@ public class ConsumerResource {
     }
 
     /**
-     * @return the consumer event atom feed.
+     * Retrieves and Event Atom Feed for a Consumer
+     *
+     * @return a Feed object
      * @httpcode 404
      * @httpcode 200
      */
@@ -1741,6 +1794,8 @@ public class ConsumerResource {
     }
 
     /**
+     * Regenerates the Entitlement Certificates for a Consumer
+     *
      * @httpcode 404
      * @httpcode 200
      */
@@ -1761,6 +1816,8 @@ public class ConsumerResource {
     }
 
     /**
+     * Retrieves a Compressed File representation of a Consumer
+     *
      * @return a File
      * @httpcode 403
      * @httpcode 500
@@ -1813,10 +1870,10 @@ public class ConsumerResource {
     }
 
     /**
-     * Return the consumer identified by the given uuid.
+     * Retrieves a single Consumer
      *
      * @param uuid uuid of the consumer sought.
-     * @return the consumer identified by the given uuid.
+     * @return a Consumer object
      * @httpcode 400
      * @httpcode 404
      * @httpcode 200
@@ -1841,7 +1898,7 @@ public class ConsumerResource {
      * Generates the identity certificate for the given consumer and user.
      * Throws RuntimeException if there is a problem with generating the
      * certificate.
-     *
+     * <p>
      * Regenerating an Id Cert is ok to do at any time. Since we only check
      * that the cert's date range is valid, and that it is signed by us,
      * and that the consumer UUID is in our db, it doesn't matter if the actual
@@ -1850,7 +1907,7 @@ public class ConsumerResource {
      *
      * @param c Consumer whose certificate needs to be generated.
      * @param regen if true, forces a regen of the certificate.
-     * @return The identity certificate for the given consumer.
+     * @return an IdentityCertificate object
      */
     private IdentityCertificate generateIdCert(Consumer c, boolean regen) {
         IdentityCertificate idCert = null;
@@ -1888,7 +1945,9 @@ public class ConsumerResource {
     }
 
     /**
-     * @return Registered guest consumers for the given host.
+     * Retrieves a list of Guest Consumers of a Consumer
+     *
+     * @return a list of Consumer objects
      * @httpcode 404
      * @httpcode 200
      */
@@ -1902,7 +1961,9 @@ public class ConsumerResource {
     }
 
     /**
-     * @return Registered host consumer for the given guest consumer.
+     * Retrieves a Host Consumer of a Consumer
+     *
+     * @return a Consumer object
      * @httpcode 404
      * @httpcode 200
      */
@@ -1921,6 +1982,12 @@ public class ConsumerResource {
         return consumerCurator.getHost(consumer.getFact("virt.uuid"), consumer.getOwner());
     }
 
+    /**
+     * Retrieves the Release of a Consumer
+     *
+     * @param consumerUuid
+     * @return a Release object
+     */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{consumer_uuid}/release")
@@ -1934,11 +2001,11 @@ public class ConsumerResource {
     }
 
     /**
-     * Return the compliance status of the specified consumer.
+     * Retireves the Compliance Status of a Consumer.
      *
      * @param uuid uuid of the consumer to get status for.
      * @param onDate Date to get compliance information for, default is now.
-     * @return the compliance status by the given uuid.
+     * @return a ComplianceStatus object
      * @httpcode 404
      * @httpcode 200
      */
@@ -1963,6 +2030,12 @@ public class ConsumerResource {
         return status;
     }
 
+    /**
+     * Retrieves a Compliance Status list for a Consumer
+     *
+     * @param uuids
+     * @return a list of ComplianceStatus objects
+     */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/compliance")
@@ -2003,11 +2076,12 @@ public class ConsumerResource {
             }
         }
     }
-    /*
-     *
-     * Allows the superadmin to remove a deletion record for a consumer. The
-     * main use case for this would be if a user accidently deleted a non-RHEL
-     * hypervisor, causing it to no longer be auto-detected via virt-who.
+    /**
+     * Removes the Deletion Record for a Consumer
+     * <p>
+     * Allowed for a superadmin. The main use case for this would be if
+     * a user accidently deleted a non-RHEL hypervisor, causing it to no
+     * longer be auto-detected via virt-who.
      *
      * @param uuid
      *

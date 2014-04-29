@@ -39,6 +39,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
+import org.apache.commons.lang.StringUtils;
 import org.candlepin.audit.Event;
 import org.candlepin.audit.EventAdapter;
 import org.candlepin.audit.EventFactory;
@@ -66,7 +67,6 @@ import org.candlepin.model.EnvironmentCurator;
 import org.candlepin.model.EventCurator;
 import org.candlepin.model.ExporterMetadata;
 import org.candlepin.model.ExporterMetadataCurator;
-import org.candlepin.model.PoolFilterBuilder;
 import org.candlepin.model.ImportRecord;
 import org.candlepin.model.ImportRecordCurator;
 import org.candlepin.model.ImportUpstreamConsumer;
@@ -77,6 +77,7 @@ import org.candlepin.model.OwnerInfoCurator;
 import org.candlepin.model.PermissionBlueprint;
 import org.candlepin.model.PermissionBlueprintCurator;
 import org.candlepin.model.Pool;
+import org.candlepin.model.PoolFilterBuilder;
 import org.candlepin.model.Statistic;
 import org.candlepin.model.StatisticCurator;
 import org.candlepin.model.Subscription;
@@ -92,8 +93,8 @@ import org.candlepin.pinsetter.tasks.HealEntireOrgJob;
 import org.candlepin.pinsetter.tasks.RefreshPoolsJob;
 import org.candlepin.resource.util.CalculatedAttributesUtil;
 import org.candlepin.resource.util.ResourceDateParser;
-import org.candlepin.resteasy.parameter.KeyValueParameter;
 import org.candlepin.resteasy.parameter.CandlepinParam;
+import org.candlepin.resteasy.parameter.KeyValueParameter;
 import org.candlepin.service.SubscriptionServiceAdapter;
 import org.candlepin.sync.ConflictOverrides;
 import org.candlepin.sync.Importer;
@@ -101,6 +102,7 @@ import org.candlepin.sync.ImporterException;
 import org.candlepin.sync.Meta;
 import org.candlepin.sync.SyncDataFormatException;
 import org.candlepin.util.ContentOverrideValidator;
+import org.candlepin.util.ServiceLevelValidator;
 import org.jboss.resteasy.annotations.providers.jaxb.Wrapped;
 import org.jboss.resteasy.plugins.providers.atom.Feed;
 import org.jboss.resteasy.plugins.providers.multipart.InputPart;
@@ -148,6 +150,7 @@ public class OwnerResource {
     private EnvironmentCurator envCurator;
     private CalculatedAttributesUtil calculatedAttributesUtil;
     private ContentOverrideValidator contentOverrideValidator;
+    private ServiceLevelValidator serviceLevelValidator;
 
     private static final int FEED_LIMIT = 1000;
 
@@ -170,7 +173,8 @@ public class OwnerResource {
         EntitlementCurator entitlementCurator,
         UeberCertificateGenerator ueberCertGenerator,
         EnvironmentCurator envCurator, CalculatedAttributesUtil calculatedAttributesUtil,
-        ContentOverrideValidator contentOverrideValidator) {
+        ContentOverrideValidator contentOverrideValidator,
+        ServiceLevelValidator serviceLevelValidator) {
 
         this.ownerCurator = ownerCurator;
         this.ownerInfoCurator = ownerInfoCurator;
@@ -196,12 +200,13 @@ public class OwnerResource {
         this.envCurator = envCurator;
         this.calculatedAttributesUtil = calculatedAttributesUtil;
         this.contentOverrideValidator = contentOverrideValidator;
+        this.serviceLevelValidator = serviceLevelValidator;
     }
 
     /**
-     * Return list of Owners.
+     * Retrieves a list of Owners
      *
-     * @return list of Owners
+     * @return a list of Owner objects
      * @httpcode 200
      */
     @GET
@@ -223,10 +228,26 @@ public class OwnerResource {
     }
 
     /**
-     * Return the owner identified by the given ID.
+     * Retrieves a single Owner
+     * <p>
+     * <pre>
+     * {
+     *   "parentOwner" : null,
+     *   "id" : "database_id",
+     *   "key" : "admin",
+     *   "displayName" : "Admin Owner",
+     *   "contentPrefix" : null,
+     *   "defaultServiceLevel" : null,
+     *   "upstreamConsumer" : null,
+     *   "logLevel" : null,
+     *   "href" : "/owners/admin",
+     *   "created" : [date],
+     *   "updated" : [date]
+     * }
+     * </pre>
      *
      * @param ownerKey Owner ID.
-     * @return the owner identified by the given id.
+     * @return an Owner object
      * @httpcode 404
      * @httpcode 200
      */
@@ -238,10 +259,10 @@ public class OwnerResource {
     }
 
     /**
-     * Return the owner's info identified by the given ID.
+     * Retrieves the Owner Info for an Owner
      *
      * @param ownerKey Owner ID.
-     * @return the info of the owner identified by the given id.
+     * @return an OwnerInfo object
      * @httpcode 404
      * @httpcode 200
      */
@@ -255,9 +276,9 @@ public class OwnerResource {
     }
 
     /**
-     * Creates a new Owner
+     * Creates an Owner
      *
-     * @return the new owner
+     * @return an Owner object
      * @httpcode 400
      * @httpcode 200
      */
@@ -284,7 +305,7 @@ public class OwnerResource {
     }
 
     /**
-     * Deletes an owner
+     * Removes an Owner
      *
      * @httpcode 404
      * @httpcode 200
@@ -397,10 +418,10 @@ public class OwnerResource {
     }
 
     /**
-     * Return the entitlements for the owner of the given id.
+     * Retrieves the list of Entitlements for an Owner
      *
      * @param ownerKey id of the owner whose entitlements are sought.
-     * @return the entitlements for the owner of the given id.
+     * @return a list of Entitlement objects
      * @httpcode 404
      * @httpcode 200
      */
@@ -420,12 +441,14 @@ public class OwnerResource {
     }
 
     /**
+     * Heals an Owner
+     * <p>
      * Starts an asynchronous healing for the given Owner. At the end of the
      * process the idea is that all of the consumers in the owned by the Owner
      * will be up to date.
      *
      * @param ownerKey id of the owner to be healed.
-     * @return the status of the pending job
+     * @return a JobDetail object
      * @httpcode 404
      * @httpcode 202
      */
@@ -438,10 +461,10 @@ public class OwnerResource {
     }
 
     /**
-     * Return the support levels for the owner of the given id.
+     * Retrieves a list of Support Levels for an Owner
      *
      * @param ownerKey id of the owner whose support levels are sought.
-     * @return the support levels for the owner of the given id.
+     * @return a set of String objects
      * @httpcode 404
      * @httpcode 200
      */
@@ -460,10 +483,10 @@ public class OwnerResource {
     }
 
     /**
-     * Return the activation keys for the owner of the given id.
+     * Retrieves a list of Activation Keys for an Owner
      *
      * @param ownerKey id of the owner whose keys are sought.
-     * @return the activation keys for the owner of the given id.
+     * @return a list of Activation Key objects
      * @httpcode 404
      * @httpcode 200
      */
@@ -478,10 +501,10 @@ public class OwnerResource {
     }
 
     /**
-     * Allow the creation of an activation key from the owner resource
+     * Creates an Activation Key for the Owner
      *
      * @param ownerKey id of the owner whose keys are sought.
-     * @return the activation keys for the owner of the given id.
+     * @return an Activation Key object
      * @httpcode 400
      * @httpcode 404
      * @httpcode 200
@@ -496,7 +519,7 @@ public class OwnerResource {
         Owner owner = findOwner(ownerKey);
         activationKey.setOwner(owner);
 
-        if (activationKey.getName() == null || activationKey.getName().trim().equals("")) {
+        if (StringUtils.isBlank(activationKey.getName())) {
             throw new BadRequestException(
                 i18n.tr("Must provide a name for activation key."));
         }
@@ -509,7 +532,6 @@ public class OwnerResource {
                     "include the characters '-' or '_'", activationKey.getName()));
         }
 
-
         if (activationKeyCurator.lookupForOwner(activationKey.getName(), owner) != null) {
             throw new BadRequestException(
                 i18n.tr("The activation key name ''{0}'' is already in use for owner {1}",
@@ -520,6 +542,8 @@ public class OwnerResource {
             contentOverrideValidator.validate(activationKey.getContentOverrides());
         }
 
+        serviceLevelValidator.validate(owner, activationKey.getServiceLevel());
+
         ActivationKey newKey = activationKeyCurator.create(activationKey);
         sink.emitActivationKeyCreated(newKey);
 
@@ -527,7 +551,9 @@ public class OwnerResource {
     }
 
     /**
-     * @return the created Environment
+     * Creates an Environment for an Owner
+     *
+     * @return an Environment object
      * @httpcode 404
      * @httpcode 200
      */
@@ -544,10 +570,10 @@ public class OwnerResource {
     }
 
     /**
-     * List all environments for a particular owner.
+     * Retrieves a list of Environments for an Owner
      *
      * @param envName Optional environment name filter to search for.
-     * @return list of environments
+     * @return a list of Environment objects
      * @httpcode 200
      */
     @GET
@@ -567,6 +593,13 @@ public class OwnerResource {
         return envs;
     }
 
+    /**
+     * Sets the Log Level for an Owner
+     *
+     * @param ownerKey
+     * @param level
+     * @return an Owner object
+     */
     @PUT
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{owner_key}/log")
@@ -593,6 +626,11 @@ public class OwnerResource {
         return owner;
     }
 
+    /**
+     * Remove the Log Level of an Owner
+     *
+     * @param ownerKey
+     */
     @DELETE
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{owner_key}/log")
@@ -603,10 +641,10 @@ public class OwnerResource {
     }
 
     /**
-     * Return the consumers for the owner of the given id.
+     * Retrieve a list of Consumers for the Owner
      *
      * @param ownerKey id of the owner whose consumers are sought.
-     * @return the consumers for the owner of the given id.
+     * @return a list of Consumer objects
      * @httpcode 400
      * @httpcode 404
      * @httpcode 200
@@ -643,10 +681,10 @@ public class OwnerResource {
 
 
     /**
-     * Return the entitlement pools for the owner of the given id.
+     * Retrieves a list of Pools for an Owner
      *
      * @param ownerKey id of the owner whose entitlement pools are sought.
-     * @return the entitlement pools for the owner of the given id.
+     * @return a list of Pool objects
      * @httpcode 400
      * @httpcode 404
      * @httpcode 200
@@ -659,6 +697,7 @@ public class OwnerResource {
         @PathParam("owner_key")
             @Verify(value = Owner.class, subResource = SubResource.POOLS) String ownerKey,
         @QueryParam("consumer") String consumerUuid,
+        @QueryParam("activation_key") String activationKeyName,
         @QueryParam("product") String productId,
         @QueryParam("listall") @DefaultValue("false") boolean listAll,
         @QueryParam("activeon") String activeOn,
@@ -693,13 +732,23 @@ public class OwnerResource {
             }
         }
 
+        ActivationKey key = null;
+        if (activationKeyName != null) {
+            key = activationKeyCurator.lookupForOwner(activationKeyName, owner);
+            if (key == null) {
+                throw new BadRequestException(
+                    i18n.tr("ActivationKey with id {0} could not be found.",
+                        activationKeyName));
+            }
+        }
+
         // Process the filters passed for the attributes
         PoolFilterBuilder poolFilters = new PoolFilterBuilder();
         for (KeyValueParameter filterParam : attrFilters) {
             poolFilters.addAttributeFilter(filterParam.key(), filterParam.value());
         }
 
-        Page<List<Pool>> page = poolManager.listAvailableEntitlementPools(c, owner,
+        Page<List<Pool>> page = poolManager.listAvailableEntitlementPools(c, key, owner,
             productId, activeOnDate, true, listAll, poolFilters, pageRequest);
         List<Pool> poolList = page.getPageData();
 
@@ -716,7 +765,9 @@ public class OwnerResource {
     }
 
     /**
-     * @return the created Subscription
+     * Creates a Subscription for an Owner
+     *
+     * @return a Subscription object
      * @httpcode 404
      * @httpcode 200
      */
@@ -733,7 +784,9 @@ public class OwnerResource {
     }
 
     /**
-     * @return the owner Feed
+     * Retrieves an Event Atom Feed for an owner
+     *
+     * @return a Feed object
      * @httpcode 404
      * @httpcode 200
      */
@@ -751,7 +804,9 @@ public class OwnerResource {
     }
 
     /**
-     * @return a list of Events
+     * Retrieves a list of Events for an Owner
+     *
+     * @return a list of Event objects
      * @httpcode 404
      * @httpcode 200
      */
@@ -769,7 +824,9 @@ public class OwnerResource {
     }
 
     /**
-     * @return a list of Subscriptions
+     * Retrieves a list of Subscriptions for an Owner
+     *
+     * @return a list of Subscription objects
      * @httpcode 404
      * @httpcode 200
      */
@@ -806,13 +863,13 @@ public class OwnerResource {
     }
 
     /**
-     * Update an owner.
-     *
+     * Updates an Owner
+     * <p>
      * To un-set the defaultServiceLevel for an owner, submit an empty string.
      *
      * @param key
      * @param owner
-     * @return the update {@link Owner}
+     * @return an Owner object
      * @httpcode 404
      * @httpcode 200
      */
@@ -840,7 +897,7 @@ public class OwnerResource {
                 toUpdate.setDefaultServiceLevel(null);
             }
             else {
-                checkServiceLevel(toUpdate, owner.getDefaultServiceLevel());
+                serviceLevelValidator.validate(toUpdate, owner.getDefaultServiceLevel());
                 toUpdate.setDefaultServiceLevel(owner.getDefaultServiceLevel());
             }
         }
@@ -851,30 +908,15 @@ public class OwnerResource {
         return toUpdate;
     }
 
-    private void checkServiceLevel(Owner owner, String serviceLevel)
-        throws BadRequestException {
-        if (serviceLevel != null &&
-            !serviceLevel.trim().equals("")) {
-            for (String level : poolManager.retrieveServiceLevelsForOwner(owner, false)) {
-                if (serviceLevel.equalsIgnoreCase(level)) {
-                    return;
-                }
-            }
-            throw new BadRequestException(
-                i18n.tr(
-                    "Service level ''{0}'' is not available " +
-                    "to units of organization {1}.",
-                    serviceLevel, owner.getKey()));
-        }
-    }
-
     /**
+     * Refreshes the Pools for an Owner
+     * <p>
      * 'Tickle' an owner to have all of their entitlement pools synced with
      * their subscriptions. This method (and the one below may not be entirely
      * RESTful, as the updated data is not supplied as an argument.
      *
      * @param ownerKey unique id key of the owner whose pools should be updated
-     * @return the status of the pending job
+     * @return a JobDetail object
      * @httpcode 404
      * @httpcode 202
      */
@@ -902,6 +944,8 @@ public class OwnerResource {
     }
 
     /**
+     * Updates a Subscription for an Owner
+     *
      * @httpcode 404
      * @httpcode 200
      */
@@ -919,20 +963,22 @@ public class OwnerResource {
     }
 
     /**
+     * Removes Imports for an Owner
+     * <p>
      * Cleans out all imported subscriptions and triggers a background refresh pools.
      * Link to an upstream distributor is removed for the owner, so they can import from
      * another distributor. Other owners can also now import the manifests originally
      * used in this owner.
-     *
+     * <p>
      * This call does not differentiate between any specific import, it just
      * destroys all subscriptions with an upstream pool ID, essentially anything from
      * an import. Custom subscriptions will be left alone.
-     *
+     * <p>
      * Imports do carry rules and product information which is global to the candlepin
      * server. This import data is *not* undone, we assume that updates to this data
      * can be safely kept.
      *
-     * @return the status of the pending job
+     * @return a JobDetail object
      * @httpcode 404
      * @httpcode 200
      */
@@ -977,6 +1023,8 @@ public class OwnerResource {
     }
 
     /**
+     * Imports a Manifest to the Owner
+     *
      * @httpcode 400
      * @httpcode 404
      * @httpcode 500
@@ -1066,7 +1114,9 @@ public class OwnerResource {
     }
 
     /**
-     * @return a list of ImportRecords
+     * Retrieves a list of Import Records for an Owner
+     *
+     * @return a list of ImportRecord objects
      * @httpcode 404
      * @httpcode 200
      */
@@ -1082,7 +1132,9 @@ public class OwnerResource {
     }
 
     /**
-     * @return a list of Statistics
+     * Retrieves a list of Statistics for an Owner
+     *
+     * @return a list of Statistic objects
      * @httpcode 400
      * @httpcode 404
      * @httpcode 200
@@ -1110,7 +1162,11 @@ public class OwnerResource {
     }
 
     /**
-     * @return a list of Statistics
+     * Retrieves a list of Statistics for an Owner
+     * <p>
+     * By Type
+     *
+     * @return a list of Statistic objects
      * @httpcode 400
      * @httpcode 404
      * @httpcode 200
@@ -1139,7 +1195,11 @@ public class OwnerResource {
     }
 
     /**
-     * @return a list of Statistics
+     * Retrieves a list of Statistics for an Owner
+     * <p>
+     * By Types
+     *
+     * @return a list of Statistic objects
      * @httpcode 400
      * @httpcode 404
      * @httpcode 200
@@ -1169,7 +1229,9 @@ public class OwnerResource {
     }
 
     /**
-     * @return an EntitlementCertificate
+     * Creates an Ueber Entitlement Certificate
+     *
+     * @return an EntitlementCertificate object
      * @httpcode 400
      * @httpcode 404
      * @httpcode 200
@@ -1211,7 +1273,9 @@ public class OwnerResource {
     }
 
     /**
-     * @return an EntitlementCertificate
+     * Retrieves the Ueber Entitlement Certificate
+     *
+     * @return an EntitlementCertificate object
      * @httpcode 404
      * @httpcode 200
      */
@@ -1244,7 +1308,9 @@ public class OwnerResource {
     }
 
     /**
-     * @return a List of UpstreamConsumer for the given Owner
+     * Retrieves a list of Upstream Consumers for an Owner
+     *
+     * @return a list of UpstreamConsumer objects
      * @httpcode 404
      * @httpcode 200
      */
@@ -1269,6 +1335,13 @@ public class OwnerResource {
         return results;
     }
 
+    /**
+     * Retrieves a list of Hypervisors for an Owner
+     *
+     * @param ownerKey
+     * @param hypervisorIds
+     * @return a list of Consumer objects
+     */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{owner_key}/hypervisors")

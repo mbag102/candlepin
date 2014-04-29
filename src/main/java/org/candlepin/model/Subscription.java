@@ -27,12 +27,17 @@ import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.apache.commons.lang.StringUtils;
+import org.hibernate.annotations.Cascade;
 import org.hibernate.annotations.ForeignKey;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Index;
@@ -48,19 +53,22 @@ public class Subscription extends AbstractHibernateObject {
 
     @Id
     @GeneratedValue(generator = "system-uuid")
-    @GenericGenerator(name = "system-uuid", strategy = "uuid2")
-    @Column(length = 37)
+    @GenericGenerator(name = "system-uuid", strategy = "uuid")
+    @Column(length = 32)
+    @NotNull
     private String id;
 
     @ManyToOne
     @ForeignKey(name = "fk_subscription_owner")
     @JoinColumn(nullable = false)
     @Index(name = "cp_subscription_owner_fk_idx")
+    @NotNull
     private Owner owner;
 
     @ManyToOne
     @ForeignKey(name = "fk_subscription_product")
     @JoinColumn(nullable = false)
+    @NotNull
     private Product product;
 
     @ManyToOne
@@ -84,30 +92,49 @@ public class Subscription extends AbstractHibernateObject {
         inverseJoinColumns = @JoinColumn(name = "product_id"))
     private Set<Product> derivedProvidedProducts = new HashSet<Product>();
 
+    @OneToMany
+    @ForeignKey(name = "fk_sub_branding_branding_id",
+            inverseName = "fk_sub_branding_sub_id")
+    @JoinTable(name = "cp_sub_branding",
+        joinColumns = @JoinColumn(name = "subscription_id"),
+        inverseJoinColumns = @JoinColumn(name = "branding_id"))
+    @Cascade({org.hibernate.annotations.CascadeType.ALL,
+        org.hibernate.annotations.CascadeType.DELETE_ORPHAN})
+    private Set<Branding> branding = new HashSet<Branding>();
+
     @Column(nullable = false)
+    @NotNull
     private Long quantity;
 
     @Column(nullable = false)
+    @NotNull
     private Date startDate;
 
     @Column(nullable = false)
+    @NotNull
     private Date endDate;
 
+    @Size(max = 255)
     private String contractNumber;
 
+    @Size(max = 255)
     private String accountNumber;
 
     private Date modified;
 
+    @Size(max = 255)
     private String orderNumber;
 
     @Column(name = "upstream_pool_id")
+    @Size(max = 255)
     private String upstreamPoolId;
 
     @Column(name = "upstream_entitlement_id")
+    @Size(max = 37)
     private String upstreamEntitlementId;
 
     @Column(name = "upstream_consumer_id")
+    @Size(max = 255)
     private String upstreamConsumerId;
 
     @OneToOne(cascade = CascadeType.ALL)
@@ -365,5 +392,29 @@ public class Subscription extends AbstractHibernateObject {
         this.cdn = cdn;
     }
 
+    public Set<Branding> getBranding() {
+        return branding;
+    }
 
+    public void setBranding(Set<Branding> branding) {
+        this.branding = branding;
+    }
+
+    public boolean isStacked() {
+        return !StringUtils.isBlank(this.product.getAttributeValue("stacking_id"));
+    }
+
+    public String getStackId() {
+        // Check if we are stacked first so we return null over empty string
+        // when stacking_id = ""
+        if (this.isStacked()) {
+            return this.product.getAttributeValue("stacking_id");
+        }
+        return null;
+    }
+
+    public boolean createsSubPools() {
+        String virtLimit = this.getProduct().getAttributeValue("virt_limit");
+        return !StringUtils.isBlank(virtLimit) && !"0".equals(virtLimit);
+    }
 }

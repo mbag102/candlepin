@@ -16,11 +16,13 @@ package org.candlepin.util.apicrawl;
 
 //import com.sun.javadoc.AnnotationDesc;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.javadoc.AnnotationDesc;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.DocErrorReporter;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.RootDoc;
 import com.sun.javadoc.Tag;
+import com.sun.javadoc.Type;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -96,13 +98,17 @@ public class ApiDoclet {
         List<RestMethod> methods = new ArrayList<RestMethod>();
 
         for (ClassDoc classDoc : root.classes()) {
-            // only look at public methods on Resource classes
-            if (classDoc.qualifiedName().endsWith("Resource")) {
-                for (MethodDoc methodDoc : classDoc.methods()) {
-                    if (methodDoc.isPublic()) {
-                        methods.add(new RestMethod(methodDoc));
-                    }
+            boolean docClass = false;
+            for (AnnotationDesc a : classDoc.annotations()) {
+                // Only look at REST resource classes
+                if ("javax.ws.rs.Path".equals(a.annotationType().qualifiedTypeName())) {
+                    docClass = true;
+                    break;
                 }
+            }
+
+            if (docClass) {
+                getAllMethods(classDoc, methods);
             }
         }
 
@@ -117,6 +123,19 @@ public class ApiDoclet {
         }
     }
 
+    private static void getAllMethods(Type type, List<RestMethod> methods) {
+        // Don't walk up beyond our classes.
+        if (type != null && type.qualifiedTypeName().startsWith("org.candlepin")) {
+            ClassDoc classDoc = type.asClassDoc();
+            getAllMethods(classDoc.superclassType(), methods);
+            for (MethodDoc methodDoc : classDoc.methods()) {
+                if (methodDoc.isPublic()) {
+                    methods.add(new RestMethod(methodDoc));
+                }
+            }
+        }
+    }
+
     /**
      * Represents RESTful method documentation, including a method description
      * and a description of possible return codes.
@@ -124,7 +143,6 @@ public class ApiDoclet {
     static class RestMethod {
         private String method;
         private String description;
-        private String summary;
         private String deprecated;
         private String returns;
         private List<HttpStatusCode> httpStatusCodes;
@@ -145,13 +163,7 @@ public class ApiDoclet {
             }
 
             this.method = doc.qualifiedName();
-
-            String[] parts = doc.commentText().split("\n\n");
-            this.summary = parts[0];
-
-            if (parts.length > 1) {
-                this.description = parts[1];
-            }
+            this.description = doc.commentText();
         }
 
         public String getMethod() {
@@ -160,10 +172,6 @@ public class ApiDoclet {
 
         public String getDescription() {
             return this.description;
-        }
-
-        public String getSummary() {
-            return this.summary;
         }
 
         public String getDeprecated() {

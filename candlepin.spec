@@ -35,7 +35,7 @@ Name: candlepin
 Summary: Candlepin is an open source entitlement management system
 Group: System Environment/Daemons
 License: GPLv2
-Version: 0.9.5
+Version: 0.9.10
 Release: 1%{?dist}
 URL: http://fedorahosted.org/candlepin
 # Source0: https://fedorahosted.org/releases/c/a/candlepin/%{name}-%{version}.tar.gz
@@ -46,15 +46,22 @@ BuildArch: noarch
 
 BuildRequires: java-devel >= 0:1.6.0
 BuildRequires: ant >= 0:1.7.0
+
+%if 0%{?rhel}
+BuildRequires: ant-nodeps >= 0:1.7.0
+%endif
+
 BuildRequires: gettext
 BuildRequires: selinux-policy-doc
 
 
 %if 0%{?reqcpdeps}
-%global distlibdir %{_datadir}/%{name}/lib/
-%global libdir %{_datadir}/%{name}/lib/
-BuildRequires: candlepin-deps >= 0:0.2.1
+%define distlibdir %{_datadir}/%{name}/lib/
+%define libdir %{_datadir}/%{name}/lib/
+%define usecpdeps "usecpdeps"
+BuildRequires: candlepin-deps >= 0:0.2.3
 %else
+
 # Require the candlepin software collection for packages we use that may
 # conflict with other projects/releases:
 BuildRequires: scl-utils-build
@@ -86,6 +93,8 @@ BuildRequires: javassist >= 3.12.0
 
 # for schema
 BuildRequires: hibernate3-commons-annotations >= 0:4.0.1
+BuildRequires: hibernate-beanvalidation-api >= 1.0.0
+BuildRequires: hibernate4-validator >= 0:4.2.5
 
 BuildRequires: resteasy >= 0:2.3.1
 BuildRequires: hornetq >= 0:2.3.5
@@ -153,9 +162,11 @@ Requires: logback-classic
 Requires: hibernate4-core >= 0:4.2.5
 Requires: hibernate4-entitymanager >= 0:4.2.5
 Requires: hibernate4-c3p0 >= 0:4.2.5
+Requires: hibernate4-validator >= 0:4.2.5
 Requires: hibernate3-commons-annotations >= 0:4.0.1
 Requires: hibernate-jpa-2.0-api >= 0:1.0.1
 Requires: candlepin-scl
+Requires: hibernate-beanvalidation-api >= 1.0.0
 Requires: c3p0 >= 0:0.9.1.2
 Requires: resteasy >= 0:2.3.1
 Requires: google-guice >= 0:3.0
@@ -363,6 +374,63 @@ fi
 
 
 %changelog
+* Tue Apr 22 2014 jesus m. rodriguez <jesusr@redhat.com> 0.9.10-1
+- 1075883: whitelist hypervisor consumers for certv3 (ckozak@redhat.com)
+- Add access methods to see more details of Permissions (dcrissma@redhat.com)
+- use unit of work while instantiating job objects (ckozak@redhat.com)
+- Generate doc for superclass methods too. (awood@redhat.com)
+- Fixed hibernate validation test to reflect no @Size on entryType (ckozak@redhat.com)
+- Remove @Size annotation from enum type. (jesusr@redhat.com)
+- bump candlepin-deps (jesusr@redhat.com)
+- remove F18 from katello-koji (jesusr@redhat.com)
+
+* Fri Apr 11 2014 jesus m. rodriguez <jesusr@redhat.com> 0.9.9-1
+- 1065369: Use Hibernate Validation to supersede database error reporting.  (wpoteat@redhat.com)
+- latest strings from zanata (alikins@redhat.com)
+- Fix import_update_single_pool_spec failure (ckozak@redhat.com)
+- add testing (ckozak@redhat.com)
+- better logging of warnings while refreshing pools (ckozak@redhat.com)
+- don't fail refresh pools so easily (ckozak@redhat.com)
+- don't regenerate all certs for every refresh pools (ckozak@redhat.com)
+
+* Thu Apr 03 2014 jesus m. rodriguez <jesusr@redhat.com> 0.9.8-1
+- updated pinsetter with timeout (ckozak@redhat.com)
+- Revert "remove job blocking" (ckozak@redhat.com)
+- remove job blocking (ckozak@redhat.com)
+- take advantage of pool functions for readability (ckozak@redhat.com)
+- Use total quantity to validate pools for activation keys (ckozak@redhat.com)
+- Clean up some recent activation key changes (ckozak@redhat.com)
+- Rev rules version for activation key pool validation (ckozak@redhat.com)
+- Prevent product deletion when referenced by subscriptions (mstead@redhat.com)
+- Create ActivationKeyRules (ckozak@redhat.com)
+- retain activation key order on register (ckozak@redhat.com)
+- Add SLA functionality to Activation Keys. (wpoteat@redhat.com)
+
+* Mon Mar 24 2014 jesus m. rodriguez <jesusr@redhat.com> 0.9.7-1
+- remove ant-nodeps from fedora builds. (jesusr@redhat.com)
+
+* Mon Mar 24 2014 jesus m. rodriguez <jesusr@redhat.com> 0.9.6-1
+- use branding type from Branding, not product attrs (ckozak@redhat.com)
+- Add brand name to cert, WIP. (dgoodwin@redhat.com)
+- Import/export for branding. (dgoodwin@redhat.com)
+- Update refresh pools for branding. (dgoodwin@redhat.com)
+- Complete branding db mappings for pool and subscription.  (dgoodwin@redhat.com)
+- Add Branding model to subscriptions. (dgoodwin@redhat.com)
+- Revert "Updates for uuid2" (ckozak@redhat.com)
+- Latest strings from zanata (alikins@redhat.com)
+- Print out the line number and last piece of the logger name for testing (awood@redhat.com)
+- Make Checkstyle allow longer lines. (awood@redhat.com)
+- Remove old Fedoras, add F20. (jmrodri@gmail.com)
+- Fix concurrent hornetq error. (jesusr@redhat.com)
+- Use a dependant subquery for facts (ckozak@redhat.com)
+- Fix failing spec due to mysql cutting off milliseconds (ckozak@redhat.com)
+- Add index to cp_consumer_facts on cp_consumer_id (ckozak@redhat.com)
+- Support colons in the value of KeyValueParameters (ckozak@redhat.com)
+- search consumers by on facts (ckozak@redhat.com)
+- Fix reading PKCS1 server certs. (dgoodwin@redhat.com)
+- Remove use of anon ECDH ciphers in tomcat config, add ECDHE.  (dgoodwin@redhat.com)
+- Support reading PKCS8 CA keys. (dgoodwin@redhat.com)
+
 * Thu Mar 13 2014 jesus m. rodriguez <jesusr@redhat.com> 0.9.5-1
 - 1073570: Enforce database constraint on one subpool per stack (ckozak@redhat.com)
 - rulessource in liquibase update should be all caps (ckozak@redhat.com)

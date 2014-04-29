@@ -18,6 +18,7 @@ import org.candlepin.auth.Access;
 import org.candlepin.auth.UserPrincipal;
 import org.candlepin.auth.permissions.OwnerPermission;
 import org.candlepin.auth.permissions.Permission;
+import org.candlepin.model.Branding;
 import org.candlepin.model.CertificateSerial;
 import org.candlepin.model.Consumer;
 import org.candlepin.model.ConsumerType;
@@ -33,6 +34,7 @@ import org.candlepin.model.ProductAttribute;
 import org.candlepin.model.ProductPoolAttribute;
 import org.candlepin.model.ProvidedProduct;
 import org.candlepin.model.RulesCurator;
+import org.candlepin.model.SourceSubscription;
 import org.candlepin.model.Subscription;
 import org.candlepin.model.User;
 import org.candlepin.model.activationkeys.ActivationKey;
@@ -179,6 +181,7 @@ public class TestUtil {
             providedProducts, Long.valueOf(quantity), TestUtil.createDate(2009,
                 11, 30), TestUtil.createDate(2015, 11, 30), "SUB234598S",
             "ACC123", "ORD222");
+        pool.setSourceSubscription(new SourceSubscription("SUB234598S", "master"));
 
         // Simulate copying product attributes to the pool.
         if (product != null) {
@@ -310,7 +313,7 @@ public class TestUtil {
             sub.getQuantity(), sub.getStartDate(),
             sub.getEndDate(), sub.getContractNumber(), sub.getAccountNumber(),
             sub.getOrderNumber());
-        p.setSubscriptionId(sub.getId());
+        p.setSourceSubscription(new SourceSubscription(sub.getId(), "master"));
 
         for (ProductAttribute attr : sub.getProduct().getAttributes()) {
             p.addProductAttribute(new ProductPoolAttribute(attr.getName(), attr.getValue(),
@@ -331,6 +334,10 @@ public class TestUtil {
             p.addProvidedProduct(new ProvidedProduct(prod.getId(), prod.getName()));
         }
 
+        for (Branding b : sub.getBranding()) {
+            p.getBranding().add(new Branding(b.getProductId(), b.getType(), b.getName()));
+        }
+
         return p;
     }
 
@@ -339,6 +346,7 @@ public class TestUtil {
         ActivationKey key = new ActivationKey();
         key.setOwner(owner);
         key.setName("A Test Key");
+        key.setServiceLevel("TestLevel");
         if (pools != null) {
             Set<ActivationKeyPool> akPools = new HashSet<ActivationKeyPool>();
             for (Pool p : pools) {
@@ -366,4 +374,9 @@ public class TestUtil {
         return tree1.equals(tree2);
     }
 
+    public static String getStringOfSize(int size) {
+        char[] charArray = new char[size];
+        Arrays.fill(charArray, 'x');
+        return new String(charArray);
+    }
 }

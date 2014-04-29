@@ -1,4 +1,4 @@
-// Version: 5.6
+// Version: 5.8
 
 /*
  * Default Candlepin rule set.
@@ -12,6 +12,10 @@
 
 function entitlement_name_space() {
     return Entitlement;
+}
+
+function activation_key_name_space() {
+    return ActivationKey;
 }
 
 function compliance_name_space() {
@@ -225,7 +229,15 @@ function createPool(pool) {
           return false;
         }
         return true;
-    }
+    };
+
+    pool.isUnlimited = function() {
+        return pool.quantity < 0;
+    };
+
+    pool.getAvailable = function() {
+        return pool.quantity - pool.consumed; 
+    };
 
     // Lazily initialize the list of derived provided product IDs.
     pool.derivedProducts = function () {
@@ -245,6 +257,39 @@ function createPool(pool) {
         return this.derived_product_list;
     };
     return pool;
+}
+
+function createActivationKey(key) {
+    key.virt_only = false;
+    key.physical_only = false;
+    key.requires_host = null;
+    key.consumer_type = null;
+
+    for (var i = 0; i < key.pools.length; i++) {
+        var pool = createPool(key.pools[i].pool);
+
+        // If any pools in the key are physical only, consider the key physical only
+        key.physical_only = key.physical_only ||
+            Utils.equalsIgnoreCase('true', pool.getAttribute(PHYSICAL_ONLY));
+
+        // If any pools in the key are virt only, consider the key virt only
+        key.virt_only = key.virt_only ||
+            Utils.equalsIgnoreCase('true', pool.getAttribute(VIRT_ONLY)) ||
+            (pool.hasAttribute(INSTANCE_ATTRIBUTE) &&
+             context.key.pools[i].quantity !== null &&
+             parseInt(pool.getAttribute(INSTANCE_ATTRIBUTE)) > context.key.pools[i].quantity);
+
+        var pool_host_requires = pool.getAttribute(REQUIRES_HOST_ATTRIBUTE);
+        if (pool_host_requires !== null && pool_host_requires != "") {
+            key.requires_host = pool_host_requires;
+            key.virt_only = true;
+        }
+        var pool_consumer_type = pool.getAttribute("requires_consumer_type");
+        if (pool_consumer_type !== null && pool_consumer_type != "") {
+            key.consumer_type = pool_consumer_type;
+        }
+    }
+    return key;
 }
 
 /*
@@ -820,7 +865,7 @@ var CoverageCalculator = {
             }
         // Loop while the stack isn't covered for all the stackable attributes we're checking
         // and there is enough available quantity for the next iteration
-        } while (!covered && ((quantity + increment <= pool.quantity - pool.consumed) || pool.quantity == -1));
+        } while (!covered && ((quantity + increment <= pool.getAvailable()) || pool.isUnlimited()));
 
         log.debug("Quantity required to cover consumer: " + quantity);
         return quantity;
@@ -1092,6 +1137,134 @@ function isLevelExempt (level, exemptList) {
         }
     }
     return false;
+}
+
+/*
+ * Code to validate pools before adding them to an activation key.
+ * This way we can't create activation keys that can never successfully
+ * register a consumer.
+ */
+var ActivationKey = {
+
+    get_attribute_context: function() {
+        context = JSON.parse(json_context);
+
+        // Pool to validate
+        context.pool = createPool(context.pool);
+        context.key = createActivationKey(context.key);
+
+        return context;
+    },
+
+    /*
+     * If the activation key is only for physical machines, the quantity of instance
+     * based pools must be either null or evenly divisible by the instance multiplier
+     */
+    validate_instance: function(key, pool, quantity, result) {
+        if (key.physical_only && quantity !== null && pool.hasAttribute(INSTANCE_ATTRIBUTE)) {
+            var instance_multi = parseInt(pool.getAttribute(INSTANCE_ATTRIBUTE));
+            if (quantity % instance_multi != 0) {
+                result.addError("rulefailed.invalid.quantity.instancebased.physical");
+            }
+        }
+    },
+
+    /*
+     * Quantity of the pool we're attaching must be null or positive.
+     * There must be sufficient quantity available if quantity is specified.
+     */
+    validate_quantity: function(key, pool, quantity, result) {
+        if (quantity !== null && quantity < 1) {
+            result.addError("rulefailed.invalid.quantity");
+        }
+
+        var minRequiredQuantity = 1;
+        // Instance based quantity
+        if (key.physical_only && pool.hasAttribute(INSTANCE_ATTRIBUTE)) {
+            minRequiredQuantity = parseInt(pool.getAttribute(INSTANCE_ATTRIBUTE));
+        }
+
+        if (!pool.isUnlimited() &&
+                (pool.quantity < minRequiredQuantity ||
+                 (quantity !== null && quantity > pool.quantity))) {
+            result.addError("rulefailed.insufficient.quantity");
+        }
+        if (!Utils.isMultiEnt(pool)) {
+            // If the pool isn't multi-entitlable, we can only accept null quantity and 1
+            if (quantity !== null && quantity > 1) {
+                result.addError("rulefailed.invalid.nonmultient.quantity");
+            }
+            // Don't allow non-multi-ent pools to be attached to an activation key more than once
+            for (var i = 0; i < key.pools.length; i++) {
+                if (pool.id == key.pools[i].pool.id) {
+                    result.addError("rulefailed.already.exists");
+                    break;
+                }
+            }
+        }
+    },
+
+    /*
+     * We can only allow one required host per activation key, otherwise the key becomes
+     * useless.
+     *
+     * If there are physical only pools, we cannot require hosts, because the attributes
+     * are mutually exclusive.
+     */
+    validate_requires_host: function(key, pool, result) {
+        pool_requires = pool.getAttribute(REQUIRES_HOST_ATTRIBUTE);
+        if (pool_requires !== null && pool_requires != "") {
+            if (key.requires_host !== null && pool_requires != key.requires_host) {
+                result.addError("rulefailed.multiple.host.restrictions");
+            }
+            if (key.physical_only) {
+                result.addError("rulefailed.host.restriction.physical.only");
+            }
+        }
+    },
+
+    /*
+     * Do not allow pools that require a "person" type consumer to be added to an activation key.
+     * Do not allow multiple different consumer types to be required on the same activation key.
+     */
+    validate_consumer_type: function(key, pool, result) {
+        pool_consumer_type = pool.getAttribute("requires_consumer_type");
+        if (pool_consumer_type == "person") {
+            result.addError("rulefailed.actkey.cannot.use.person.pools");
+        }
+        else if (key.consumer_type !== null && pool_consumer_type !== null &&
+                key.consumer_type != pool_consumer_type) {
+            result.addError("rulefailed.actkey.single.consumertype");
+        }
+    },
+
+    validate_physical_virtual: function(key, pool, result) {
+       var virt_pool = Utils.equalsIgnoreCase('true', pool.getAttribute(VIRT_ONLY));
+       var phys_pool = Utils.equalsIgnoreCase('true', pool.getAttribute(PHYSICAL_ONLY));
+       if (virt_pool && key.physical_only) {
+           result.addError("rulefailed.virtonly.on.physical.key");
+       }
+       if (phys_pool && key.virt_only) {
+           result.addError("rulefailed.physicalonly.on.virt.key");
+       }
+    },
+
+    validate_pool: function() {
+        // TODO: rewrite Entitlement rules in such a way that we can use overlapping code.
+        // pre-entitlement rules should probably be redesigned to take only one call.
+        var result = Entitlement.ValidationResult();
+        context = this.get_attribute_context();
+        key = context.key;
+        pool = context.pool;
+        quantity = context.quantity;
+
+        this.validate_quantity(key, pool, quantity, result);
+        this.validate_consumer_type(key, pool, result);
+        this.validate_requires_host(key, pool, result);
+        this.validate_physical_virtual(key, pool, result);
+        this.validate_instance(key, pool, quantity, result);
+        return JSON.stringify(result);
+    }
 }
 
 var Entitlement = {
@@ -1892,7 +2065,7 @@ var Autobind = {
                 pool.currently_available = Quantity.get_suggested_pool_quantity(pool, context.consumer, []);
                 // Can use an empty list here because global attributes don't necessarily change quantity
             } else {
-                pool.currently_available = pool.quantity - pool.consumed;
+                pool.currently_available = pool.getAvailable();
             }
             // If the pool is not multi-entitlable, only one may be used
             if (pool.currently_available > 0 && !Utils.isMultiEnt(pool)) {

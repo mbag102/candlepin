@@ -14,21 +14,6 @@
  */
 package org.candlepin.model;
 
-import org.candlepin.jackson.HateoasInclude;
-import org.candlepin.util.DateSource;
-
-import com.fasterxml.jackson.annotation.JsonFilter;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import org.hibernate.annotations.Cascade;
-import org.hibernate.annotations.ForeignKey;
-import org.hibernate.annotations.Formula;
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.Index;
-import org.hibernate.annotations.LazyCollection;
-import org.hibernate.annotations.LazyCollectionOption;
-import org.hibernate.annotations.Where;
-
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,17 +26,33 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Transient;
-import javax.persistence.UniqueConstraint;
 import javax.persistence.Version;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
+
+import org.candlepin.jackson.HateoasInclude;
+import org.candlepin.util.DateSource;
+import org.hibernate.annotations.Cascade;
+import org.hibernate.annotations.ForeignKey;
+import org.hibernate.annotations.Formula;
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Index;
+import org.hibernate.annotations.LazyCollection;
+import org.hibernate.annotations.LazyCollectionOption;
+import org.hibernate.annotations.Where;
+
+import com.fasterxml.jackson.annotation.JsonFilter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Represents a pool of products eligible to be consumed (entitled).
@@ -60,8 +61,7 @@ import javax.xml.bind.annotation.XmlTransient;
 @XmlRootElement(name = "pool")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @Entity
-@Table(name = "cp_pool", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"subscriptionid", "subscriptionsubkey"})})
+@Table(name = "cp_pool")
 @JsonFilter("PoolFilter")
 public class Pool extends AbstractHibernateObject implements Persisted, Owned {
 
@@ -93,32 +93,19 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
 
     @Id
     @GeneratedValue(generator = "system-uuid")
-    @GenericGenerator(name = "system-uuid", strategy = "uuid2")
-    @Column(length = 37)
+    @GenericGenerator(name = "system-uuid", strategy = "uuid")
+    @Column(length = 32)
+    @NotNull
     private String id;
 
     @ManyToOne
     @ForeignKey(name = "fk_pool_owner")
     @JoinColumn(nullable = false)
     @Index(name = "cp_pool_owner_fk_idx")
+    @NotNull
     private Owner owner;
 
     private Boolean activeSubscription = Boolean.TRUE;
-
-    // An identifier for the subscription this pool is associated with. Note
-    // that this is not a database foreign key. The subscription identified
-    // could exist in another system only accessible to us as a service.
-    // Actual implementations of our SubscriptionService will be used to use
-    // this data.
-    @Column(nullable = true)
-    private String subscriptionId;
-
-    // since one subscription can create multiple pools, we need to use a
-    // combination of subid/some other key to uniquely identify a pool.
-    // subscriptionSubKey is set in the js rules, according to the same logic
-    // that will create more than one pool per sub.
-    @Column(nullable = true)
-    private String subscriptionSubKey;
 
     /** Indicates this pool was created as a result of granting an entitlement.
      * Allows us to know that we need to clean this pool up if that entitlement
@@ -139,19 +126,35 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
     @XmlTransient
     private SourceStack sourceStack;
 
+    /**
+     * Signifies that this pool was created from this subscription (only one
+     * pool per subscription id/subkey is allowed)
+     */
+    @OneToOne(mappedBy = "pool", targetEntity = SourceSubscription.class)
+    @Cascade({org.hibernate.annotations.CascadeType.ALL,
+        org.hibernate.annotations.CascadeType.DELETE_ORPHAN})
+    @XmlTransient
+    private SourceSubscription sourceSubscription;
+
     @Column(nullable = false)
+    @NotNull
     private Long quantity;
 
     @Column(nullable = false)
+    @NotNull
     private Date startDate;
 
     @Column(nullable = false)
+    @NotNull
     private Date endDate;
 
     @Column(nullable = false)
+    @Size(max = 255)
+    @NotNull
     private String productId;
 
     @Column
+    @Size(max = 255)
     private String derivedProductId;
 
     @OneToMany(targetEntity = ProvidedProduct.class)
@@ -194,10 +197,16 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
     @LazyCollection(LazyCollectionOption.EXTRA)
     private Set<Entitlement> entitlements = new HashSet<Entitlement>();
 
+    @Size(max = 255)
     private String restrictedToUsername;
 
+    @Size(max = 255)
     private String contractNumber;
+
+    @Size(max = 255)
     private String accountNumber;
+
+    @Size(max = 255)
     private String orderNumber;
 
     @Formula("(select sum(ent.quantity) from cp_entitlement ent " +
@@ -210,9 +219,21 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
     private Long exported;
 
     // TODO: May not still be needed, IIRC a temporary hack for client.
+    @Size(max = 255)
     private String productName;
 
+    @Size(max = 255)
     private String derivedProductName;
+
+    @OneToMany
+    @ForeignKey(name = "fk_pool_branding_branding_id",
+            inverseName = "fk_pool_branding_pool_id")
+    @JoinTable(name = "cp_pool_branding",
+        joinColumns = @JoinColumn(name = "pool_id"),
+        inverseJoinColumns = @JoinColumn(name = "branding_id"))
+    @Cascade({org.hibernate.annotations.CascadeType.ALL,
+        org.hibernate.annotations.CascadeType.DELETE_ORPHAN})
+    private Set<Branding> branding = new HashSet<Branding>();
 
     @Version
     private int version;
@@ -484,10 +505,7 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
      */
     @XmlTransient
     public boolean isUnlimited() {
-        if (this.getQuantity() < 0) {
-            return true;
-        }
-        return false;
+        return this.getQuantity() < 0;
     }
 
     /**
@@ -507,15 +525,12 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
     /**
      * @return subscription id associated with this pool.
      */
+    @JsonProperty("subscriptionId")
     public String getSubscriptionId() {
-        return subscriptionId;
-    }
-
-    /**
-     * @param subscriptionId associates the given subscription.
-     */
-    public void setSubscriptionId(String subscriptionId) {
-        this.subscriptionId = subscriptionId;
+        if (this.getSourceSubscription() != null) {
+            return this.getSourceSubscription().getSubscriptionId();
+        }
+        return null;
     }
 
     @XmlTransient
@@ -526,6 +541,8 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
     public void setSourceStack(SourceStack sourceStack) {
         if (sourceStack != null) {
             sourceStack.setDerivedPool(this);
+            // Setting source Stack should invalidate source subscription
+            this.setSourceSubscription(null);
         }
         this.sourceStack = sourceStack;
     }
@@ -737,6 +754,21 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
         return findAttributeValue(this.productAttributes, name);
     }
 
+    public boolean hasMergedAttribute(String name) {
+        return this.getMergedAttribute(name) != null;
+    }
+
+    /*
+     * Gets either pool or product attributes, not derived attributes
+     */
+    public AbstractPoolAttribute getMergedAttribute(String name) {
+        AbstractPoolAttribute result = findAttribute(this.attributes, name);
+        if (result == null) {
+            result = findAttribute(this.productAttributes, name);
+        }
+        return result;
+    }
+
     public DerivedProductPoolAttribute getDerivedProductAttribute(String name) {
         return findAttribute(this.derivedProductAttributes, name);
     }
@@ -770,15 +802,12 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
     /**
      * @return the subscriptionSubKey
      */
+    @JsonProperty("subscriptionSubKey")
     public String getSubscriptionSubKey() {
-        return subscriptionSubKey;
-    }
-
-    /**
-     * @param subscriptionSubKey the subscriptionSubKey to set
-     */
-    public void setSubscriptionSubKey(String subscriptionSubKey) {
-        this.subscriptionSubKey = subscriptionSubKey;
+        if (this.getSourceSubscription() != null) {
+            return this.getSourceSubscription().getSubscriptionSubKey();
+        }
+        return null;
     }
 
     public Map<String, String> getCalculatedAttributes() {
@@ -877,5 +906,25 @@ public class Pool extends AbstractHibernateObject implements Persisted, Owned {
 
     public String getStackId() {
         return getProductAttributeValue("stacking_id");
+    }
+
+    public Set<Branding> getBranding() {
+        return branding;
+    }
+
+    public void setBranding(Set<Branding> branding) {
+        this.branding = branding;
+    }
+
+    @XmlTransient
+    public SourceSubscription getSourceSubscription() {
+        return sourceSubscription;
+    }
+
+    public void setSourceSubscription(SourceSubscription sourceSubscription) {
+        if (sourceSubscription != null) {
+            sourceSubscription.setPool(this);
+        }
+        this.sourceSubscription = sourceSubscription;
     }
 }

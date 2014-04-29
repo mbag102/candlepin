@@ -22,7 +22,6 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
 import com.google.inject.Inject;
-import com.google.inject.persist.UnitOfWork;
 
 /**
  * JobCleaner removes finished jobs older than yesterday, and failed
@@ -34,8 +33,7 @@ public class JobCleaner extends KingpinJob {
     public static final String DEFAULT_SCHEDULE = "0 0 12 * * ?";
 
     @Inject
-    public JobCleaner(JobCurator curator, UnitOfWork unitOfWork) {
-        super(unitOfWork);
+    public JobCleaner(JobCurator curator) {
         this.jobCurator = curator;
     }
 
@@ -45,9 +43,9 @@ public class JobCleaner extends KingpinJob {
         // CAUTION: jobCurator uses setDate on the delete query,
         // so all time info is stripped off
         Date deadLineDt = Util.yesterday();
-        this.jobCurator.cleanUpOldJobs(deadLineDt);
+        this.jobCurator.cleanUpOldCompletedJobs(deadLineDt);
         Date failedJobDeadLineDt = Util.addDaysToDt(-4);
-        this.jobCurator.cleanupFailedJobs(failedJobDeadLineDt);
+        this.jobCurator.cleanupAllOldJobs(failedJobDeadLineDt);
     }
 
 }

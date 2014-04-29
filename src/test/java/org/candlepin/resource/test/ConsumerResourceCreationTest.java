@@ -54,6 +54,7 @@ import org.candlepin.resource.ConsumerResource;
 import org.candlepin.service.IdentityCertServiceAdapter;
 import org.candlepin.service.SubscriptionServiceAdapter;
 import org.candlepin.service.UserServiceAdapter;
+import org.candlepin.util.ServiceLevelValidator;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
@@ -99,6 +100,7 @@ public class ConsumerResourceCreationTest {
     @Mock private ComplianceRules complianceRules;
     @Mock private DeletedConsumerCurator deletedConsumerCurator;
     @Mock private ConsumerContentOverrideCurator consumerContentOverrideCurator;
+    @Mock private ServiceLevelValidator serviceLevelValidator;
 
     private I18n i18n;
 
@@ -121,7 +123,7 @@ public class ConsumerResourceCreationTest {
             this.activationKeyCurator,
             null, this.complianceRules, this.deletedConsumerCurator,
             null, null, this.config, null, null, null, null,
-            consumerContentOverrideCurator);
+            consumerContentOverrideCurator, serviceLevelValidator);
 
         this.system = initSystem();
 
@@ -287,7 +289,11 @@ public class ConsumerResourceCreationTest {
     }
 
     private String createKeysString(List<String> activationKeys) {
-        return StringUtils.join(activationKeys, ',');
+        // Allow empty string through because we accept it for ",foo" etc.
+        if (!activationKeys.isEmpty()) {
+            return StringUtils.join(activationKeys, ',');
+        }
+        return null;
     }
 
     @Test
@@ -295,7 +301,7 @@ public class ConsumerResourceCreationTest {
         // Should be able to register successfully with as a trusted user principal:
         Principal p = new TrustedUserPrincipal("anyuser");
         Consumer consumer = new Consumer("sys.example.com", null, null, system);
-        resource.create(consumer, p, null, owner.getKey(), "");
+        resource.create(consumer, p, null, owner.getKey(), null);
     }
 
     @Test
@@ -341,7 +347,7 @@ public class ConsumerResourceCreationTest {
         Consumer consumer = new Consumer();
         consumer.setType(system);
         consumer.setName("consumername");
-        resource.create(consumer, p, USER, owner.getKey(), "");
+        resource.create(consumer, p, USER, owner.getKey(), null);
     }
 
     @Test
@@ -351,7 +357,7 @@ public class ConsumerResourceCreationTest {
         consumer.setType(system);
         consumer.setName("consumername");
         consumer.setReleaseVer(null);
-        resource.create(consumer, p, USER, owner.getKey(), "");
+        resource.create(consumer, p, USER, owner.getKey(), null);
 
     }
 
@@ -362,7 +368,7 @@ public class ConsumerResourceCreationTest {
         consumer.setType(system);
         consumer.setName("consumername");
         consumer.setReleaseVer(new Release(""));
-        resource.create(consumer, p, USER, owner.getKey(), "");
+        resource.create(consumer, p, USER, owner.getKey(), null);
     }
 
     @Test
@@ -371,7 +377,7 @@ public class ConsumerResourceCreationTest {
         Consumer consumer = new Consumer();
         consumer.setType(system);
         consumer.setName("consumername");
-        resource.create(consumer, p, USER, owner.getKey(), "");
+        resource.create(consumer, p, USER, owner.getKey(), null);
     }
 
     @Test
@@ -380,7 +386,7 @@ public class ConsumerResourceCreationTest {
         Consumer consumer = new Consumer();
         consumer.setType(system);
         consumer.setName("consumername");
-        resource.create(consumer, p, USER, owner.getKey(), "");
+        resource.create(consumer, p, USER, owner.getKey(), null);
         verify(complianceRules).getStatus(eq(consumer), any(Date.class));
     }
 }

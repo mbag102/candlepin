@@ -59,13 +59,15 @@ HIBERNATE = ['org.hibernate:hibernate-core:jar:4.2.5.Final',
              'org.freemarker:freemarker:jar:2.3.15',
              'c3p0:c3p0:jar:0.9.1.2',
              'dom4j:dom4j:jar:1.6.1',
-             'org.jboss.logging:jboss-logging:jar:3.1.1.GA']
+             'org.jboss.logging:jboss-logging:jar:3.1.1.GA',
+             'javax.validation:validation-api:jar:1.0.0.GA']
 DB = ['postgresql:postgresql:jar:9.0-801.jdbc4', 'mysql:mysql-connector-java:jar:5.1.26']
 ORACLE = ['com.oracle:ojdbc6:jar:11.2.0', 'org.quartz-scheduler:quartz-oracle:jar:2.1.5']
 COMMONS = ['commons-codec:commons-codec:jar:1.4',
            'commons-collections:commons-collections:jar:3.1',
            'commons-io:commons-io:jar:1.3.2',
            'commons-lang:commons-lang:jar:2.5']
+LIQUIBASE = ['org.liquibase:liquibase-core:jar:3.1.0']
 
 # Artifacts that bridge other logging frameworks to slf4j. Mime4j uses
 # JCL for example.
@@ -120,10 +122,10 @@ PROVIDED = [SERVLET]
 #
 # Specify Maven 2.0 remote repositories here, like this:
 repositories.remote << "http://jmrodri.fedorapeople.org/ivy/candlepin/"
-repositories.remote << "http://mirrors.ibiblio.org/pub/mirrors/maven2/"
 repositories.remote << "http://repository.jboss.org/nexus/content/groups/public/"
 repositories.remote << "http://gettext-commons.googlecode.com/svn/maven-repository/"
 repositories.remote << "http://oauth.googlecode.com/svn/code/maven/"
+repositories.remote << "http://central.maven.org/maven2/"
 
 
 nocstyle = ENV['nocheckstyle']
@@ -209,7 +211,7 @@ define "candlepin" do
   else
     compile.with DB
   end
-
+  compile.with LIQUIBASE
   #
   # testing
   #
@@ -338,29 +340,6 @@ define "candlepin" do
     puts "Wrote Candlepin API to: " << final_file
     puts
 
-  end
-
-  desc 'Generate HTML API Documentation'
-  task :apidoc  => [:apicrawl] do
-    options.test = 'no'
-    sh('apidoc/apidoc.rb target/candlepin_methods.json')
-  end
-
-  desc 'Lint the REST API documentation'
-  task :apilint  => [:apicrawl] do
-    options.test = 'no'
-    sh('apidoc/lint.rb target/candlepin_methods.json')
-  end
-
-  desc 'Copy the API Docs to the website directory'
-  task :apicopy  => [:apidoc] do
-    options.test = 'no'
-    sh('cp -R target/apidoc website/')
-  end
-
-  desc 'run rpmlint on the spec file'
-  task :rpmlint do
-      sh('rpmlint -f rpmlint.config candlepin.spec')
   end
 
   #

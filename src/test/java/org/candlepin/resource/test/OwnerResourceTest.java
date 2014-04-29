@@ -24,6 +24,20 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MultivaluedMap;
+
 import org.candlepin.audit.Event;
 import org.candlepin.audit.EventFactory;
 import org.candlepin.audit.EventSink;
@@ -51,6 +65,7 @@ import org.candlepin.model.OwnerCurator;
 import org.candlepin.model.PermissionBlueprint;
 import org.candlepin.model.Pool;
 import org.candlepin.model.Product;
+import org.candlepin.model.Release;
 import org.candlepin.model.Role;
 import org.candlepin.model.Subscription;
 import org.candlepin.model.SubscriptionCurator;
@@ -76,20 +91,6 @@ import org.jboss.resteasy.specimpl.MultivaluedMapImpl;
 import org.jboss.resteasy.util.GenericType;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MultivaluedMap;
 /**
  * OwnerResourceTest
  */
@@ -177,7 +178,7 @@ public class OwnerResourceTest extends DatabaseTestFixture {
         assertTrue(pool.getStartDate() != sub.getStartDate());
         assertTrue(pool.getEndDate() != sub.getEndDate());
 
-        pool.setSubscriptionId(sub.getId());
+        pool.getSourceSubscription().setSubscriptionId(sub.getId());
         poolCurator.merge(pool);
 
         poolManager.getRefresher().add(owner).run();
@@ -292,7 +293,7 @@ public class OwnerResourceTest extends DatabaseTestFixture {
 
         securityInterceptor.enable();
 
-        ownerResource.listPools(owner.getKey(), null, null, false, null,
+        ownerResource.listPools(owner.getKey(), null, null, null, false, null,
             new ArrayList<KeyValueParameter>(), principal, null);
     }
 
@@ -308,7 +309,8 @@ public class OwnerResourceTest extends DatabaseTestFixture {
         poolCurator.create(pool2);
 
         List<Pool> pools = ownerResource.listPools(owner.getKey(),
-            null, null, true, null, new ArrayList<KeyValueParameter>(), principal, null);
+            null, null, null, true, null, new ArrayList<KeyValueParameter>(),
+            principal, null);
         assertEquals(2, pools.size());
     }
 
@@ -330,16 +332,16 @@ public class OwnerResourceTest extends DatabaseTestFixture {
         List<KeyValueParameter> params = new ArrayList<KeyValueParameter>();
         params.add(createKeyValueParam("cores", "12"));
 
-        List<Pool> pools = ownerResource.listPools(owner.getKey(), null, null, true,
-            null, params, principal, null);
+        List<Pool> pools = ownerResource.listPools(owner.getKey(), null,
+            null, null, true, null, params, principal, null);
         assertEquals(1, pools.size());
         assertEquals(pool2, pools.get(0));
 
         params.clear();
         params.add(createKeyValueParam("virt_only", "true"));
 
-        pools = ownerResource.listPools(owner.getKey(), null, null, true,
-            null, params, principal, null);
+        pools = ownerResource.listPools(owner.getKey(), null, null,
+            null, true, null, params, principal, null);
         assertEquals(1, pools.size());
         assertEquals(pool1, pools.get(0));
     }
@@ -360,7 +362,7 @@ public class OwnerResourceTest extends DatabaseTestFixture {
         securityInterceptor.enable();
 
         // Filtering should just cause this to return no results:
-        ownerResource.listPools(owner.getKey(), null, null, true, null,
+        ownerResource.listPools(owner.getKey(), null, null, null, true, null,
             new ArrayList<KeyValueParameter>(), principal, null);
     }
 
@@ -554,7 +556,7 @@ public class OwnerResourceTest extends DatabaseTestFixture {
         Principal principal = setupPrincipal(new ConsumerPrincipal(c));
         securityInterceptor.enable();
 
-        List<Pool> pools = ownerResource.listPools(owner.getKey(), c.getUuid(),
+        List<Pool> pools = ownerResource.listPools(owner.getKey(), c.getUuid(), null,
             p.getId(), true, null, new ArrayList<KeyValueParameter>(), principal, null);
         assertEquals(1, pools.size());
         Pool returnedPool = pools.get(0);
@@ -577,7 +579,7 @@ public class OwnerResourceTest extends DatabaseTestFixture {
         Owner owner2 = createOwner();
         ownerCurator.create(owner2);
 
-        ownerResource.listPools(owner.getKey(), c.getUuid(),
+        ownerResource.listPools(owner.getKey(), c.getUuid(), null,
             p.getId(), true, null, new ArrayList<KeyValueParameter>(),
             setupPrincipal(owner2, Access.NONE), null);
     }
@@ -606,9 +608,11 @@ public class OwnerResourceTest extends DatabaseTestFixture {
     public void testActivationKeyCreateRead() {
         ActivationKey key = new ActivationKey();
         key.setName("dd");
+        key.setReleaseVer(new Release("release1"));
         key = ownerResource.createActivationKey(owner.getKey(), key);
         assertNotNull(key.getId());
         assertEquals(key.getOwner().getId(), owner.getId());
+        assertEquals(key.getReleaseVer().getReleaseVer(), "release1");
         List<ActivationKey> keys = ownerResource.ownerActivationKeys(owner.getKey());
         assertEquals(1, keys.size());
     }
@@ -618,6 +622,15 @@ public class OwnerResourceTest extends DatabaseTestFixture {
         ActivationKey key = new ActivationKey();
         Owner owner = createOwner();
         key.setOwner(owner);
+        key = ownerResource.createActivationKey(owner.getKey(), key);
+    }
+
+    @Test(expected = BadRequestException.class)
+    public void testActivationKeyTooLongRelease() {
+        ActivationKey key = new ActivationKey();
+        Owner owner = createOwner();
+        key.setOwner(owner);
+        key.setReleaseVer(new Release(TestUtil.getStringOfSize(256)));
         key = ownerResource.createActivationKey(owner.getKey(), key);
     }
 
@@ -734,7 +747,8 @@ public class OwnerResourceTest extends DatabaseTestFixture {
         OwnerResource or = new OwnerResource(oc,
             null, akc, null, null, i18n, null, null, null,
             null, null, null, null, null, null, null,
-            null, null, null, null, null, null, null, contentOverrideValidator);
+            null, null, null, null, null, null, null, contentOverrideValidator,
+            serviceLevelValidator);
         or.createActivationKey("testOwner", ak);
     }
 
@@ -811,7 +825,8 @@ public class OwnerResourceTest extends DatabaseTestFixture {
         OwnerResource thisOwnerResource = new OwnerResource(ownerCurator, null,
             null, null, null, i18n, es, null, null, null, importer, null, null,
             null, importRecordCurator, null, null, null, null, null,
-            null, null, null, contentOverrideValidator);
+            null, null, null, contentOverrideValidator,
+            serviceLevelValidator);
 
         MultipartInput input = mock(MultipartInput.class);
         InputPart part = mock(InputPart.class);
@@ -846,7 +861,8 @@ public class OwnerResourceTest extends DatabaseTestFixture {
         OwnerResource thisOwnerResource = new OwnerResource(ownerCurator, sc,
             null, null, null, i18n, es, null, null, null, null, null, ec,
             null, importRecordCurator, null, null, null, null, null,
-            null, null, null, contentOverrideValidator);
+            null, null, null, contentOverrideValidator,
+            serviceLevelValidator);
 
         ExporterMetadata metadata = new ExporterMetadata();
         when(ec.lookupByTypeAndOwner(ExporterMetadata.TYPE_PER_USER, owner))
@@ -869,7 +885,8 @@ public class OwnerResourceTest extends DatabaseTestFixture {
         OwnerResource thisOwnerResource = new OwnerResource(ownerCurator, null,
             null, null, null, i18n, es, null, null, null, importer, null, null,
             null, importRecordCurator, null, null, null, null, null,
-            null, null, null, contentOverrideValidator);
+            null, null, null, contentOverrideValidator,
+            serviceLevelValidator);
 
         MultipartInput input = mock(MultipartInput.class);
         InputPart part = mock(InputPart.class);
@@ -910,7 +927,7 @@ public class OwnerResourceTest extends DatabaseTestFixture {
         OwnerResource ownerres = new OwnerResource(oc, null,
             null, null, null, i18n, null, null, null, null, null, null, null,
             null, null, null, null, null, null, null, null, null, null,
-            contentOverrideValidator);
+            contentOverrideValidator, serviceLevelValidator);
 
         when(oc.lookupByKey(eq("admin"))).thenReturn(owner);
         when(owner.getUpstreamConsumer()).thenReturn(upstream);

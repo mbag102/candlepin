@@ -391,13 +391,13 @@ class Candlepin
     path << "per_page=#{params[:per_page]}&" if params[:per_page]
     path << "order=#{params[:order]}&" if params[:order]
     path << "sort_by=#{params[:sort_by]}&" if params[:sort_by]
-    
+
     # Attribute filters are specified in the following format:
     #    {attributeName}:{attributeValue}
     attribute_filters.each do |filter|
         path << "attribute=%s&" % [filter]
     end
-    
+
     results = get(path)
     return results
   end
@@ -814,6 +814,10 @@ class Candlepin
       'contractNumber' => contract_number
     }
 
+    if params[:branding]
+      subscription['branding'] = params[:branding]
+    end
+
     if params['derived_product_id']
       subscription['derivedProduct'] = { 'id' => params['derived_product_id'] }
     end
@@ -840,10 +844,13 @@ class Candlepin
     return get("/owner/#{owner_key}/activation_keys")
   end
 
-  def create_activation_key(owner_key, name)
+  def create_activation_key(owner_key, name, service_level=nil)
     key = {
       :name => name,
     }
+    if service_level
+      key['serviceLevel'] = service_level
+    end
     return post("/owners/#{owner_key}/activation_keys", key)
   end
 
@@ -908,14 +915,6 @@ class Candlepin
 
   def get_content_overrides_for_key(key_id)
       return get("/activation_keys/#{key_id}/content_overrides")
-  end
-
-  def set_activation_key_release(key_id, release)
-      return post("/activation_keys/#{key_id}/release", release)
-  end
-
-  def get_activation_key_release(key_id)
-      return get("/activation_keys/#{key_id}/release")
   end
 
   def list_certificates(serials = [])
