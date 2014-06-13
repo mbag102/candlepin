@@ -68,6 +68,7 @@ public class HealEntireOrgJob extends UniqueByOwnerJob {
                     List<Entitlement> ents = entitler.bindByProducts(null, consumer,
                         entitleDate, true);
                     entitler.sendEvents(ents);
+                    commitAndContinue();
                 }
                 // We want to catch everything and continue.
                 // Perhaps add something to surface errors later

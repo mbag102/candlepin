@@ -59,6 +59,7 @@ import org.candlepin.version.CertVersionConflictException;
 
 import com.google.inject.Inject;
 import com.google.inject.persist.Transactional;
+import com.google.inject.persist.UnitOfWork;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,6 +99,7 @@ public class CandlepinPoolManager implements PoolManager {
     private ProductCache productCache;
     private AutobindRules autobindRules;
     private ActivationKeyRules activationKeyRules;
+    private UnitOfWork unitOfWork;
 
     /**
      * @param poolCurator
@@ -114,7 +116,8 @@ public class CandlepinPoolManager implements PoolManager {
         EventFactory eventFactory, Config config, Enforcer enforcer,
         PoolRules poolRules, EntitlementCurator curator1, ConsumerCurator consumerCurator,
         EntitlementCertificateCurator ecC, ComplianceRules complianceRules,
-        AutobindRules autobindRules, ActivationKeyRules activationKeyRules) {
+        AutobindRules autobindRules, ActivationKeyRules activationKeyRules,
+        UnitOfWork uow) {
 
         this.poolCurator = poolCurator;
         this.subAdapter = subAdapter;
@@ -131,6 +134,7 @@ public class CandlepinPoolManager implements PoolManager {
         this.productCache = productCache;
         this.autobindRules = autobindRules;
         this.activationKeyRules = activationKeyRules;
+        this.unitOfWork = uow;
     }
 
     Set<Entitlement> refreshPoolsWithoutRegeneration(Owner owner) {
@@ -183,6 +187,7 @@ public class CandlepinPoolManager implements PoolManager {
                 updatePoolsForSubscription(
                     subToPoolMap.get(sub.getId()), sub, false)
             );
+            commitAndContinue();
             subToPoolMap.remove(sub.getId());
         }
 
@@ -199,6 +204,7 @@ public class CandlepinPoolManager implements PoolManager {
                 // entitlements, we need to proceed:
                 if (p.getType() == PoolType.NORMAL || p.getType() == PoolType.BONUS) {
                     deletePool(p);
+                    commitAndContinue();
                 }
             }
         }
@@ -1407,5 +1413,36 @@ public class CandlepinPoolManager implements PoolManager {
             }
         }
         return filteredPools;
+    }
+
+    protected boolean startUnitOfWork() {
+        if (unitOfWork != null) {
+            try {
+                unitOfWork.begin();
+                return true;
+            }
+            catch (IllegalStateException e) {
+                log.debug("Already have an open unit of work");
+                return false;
+            }
+        }
+        return false;
+    }
+
+    protected void endUnitOfWork() {
+        if (unitOfWork != null) {
+            try {
+                unitOfWork.end();
+            }
+            catch (IllegalStateException e) {
+                log.debug("Unit of work is already closed, doing nothing");
+                // If there is no active unit of work, there is no reason to close it
+            }
+        }
+    }
+
+    protected void commitAndContinue() {
+        endUnitOfWork();
+        startUnitOfWork();
     }
 }
