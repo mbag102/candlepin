@@ -101,6 +101,7 @@ public class AMQPBusPubProvider implements Provider<AMQPBusPublisher> {
             config.getString(ConfigProperties.AMQP_TRUSTSTORE));
         System.setProperty("javax.net.ssl.trustStorePassword",
             config.getString(ConfigProperties.AMQP_TRUSTSTORE_PASSWORD));
+        System.setProperty("javax.net.debug", "ssl");
 
         log.info("Configured SSL properites.");
     }
