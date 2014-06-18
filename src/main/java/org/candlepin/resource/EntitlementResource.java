@@ -16,30 +16,6 @@ package org.candlepin.resource;
 
 import static org.quartz.JobBuilder.newJob;
 
-import org.candlepin.auth.interceptor.Verify;
-import org.candlepin.controller.Entitler;
-import org.candlepin.controller.PoolManager;
-import org.candlepin.exceptions.BadRequestException;
-import org.candlepin.exceptions.NotFoundException;
-import org.candlepin.model.Consumer;
-import org.candlepin.model.ConsumerCurator;
-import org.candlepin.model.Entitlement;
-import org.candlepin.model.EntitlementCurator;
-import org.candlepin.paging.PageRequest;
-import org.candlepin.paging.Page;
-import org.candlepin.paging.Paginate;
-import org.candlepin.pinsetter.tasks.RegenProductEntitlementCertsJob;
-import org.candlepin.service.ProductServiceAdapter;
-import org.candlepin.service.SubscriptionServiceAdapter;
-import org.candlepin.util.Util;
-
-import com.google.inject.Inject;
-
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
-import org.quartz.JobDataMap;
-import org.quartz.JobDetail;
-import org.xnap.commons.i18n.I18n;
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -54,6 +30,31 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+
+import org.apache.commons.lang.StringUtils;
+import org.candlepin.auth.interceptor.Verify;
+import org.candlepin.controller.Entitler;
+import org.candlepin.controller.PoolManager;
+import org.candlepin.exceptions.BadRequestException;
+import org.candlepin.exceptions.NotFoundException;
+import org.candlepin.model.Consumer;
+import org.candlepin.model.ConsumerCurator;
+import org.candlepin.model.Entitlement;
+import org.candlepin.model.EntitlementCurator;
+import org.candlepin.model.Pool;
+import org.candlepin.paging.Page;
+import org.candlepin.paging.PageRequest;
+import org.candlepin.paging.Paginate;
+import org.candlepin.pinsetter.tasks.RegenProductEntitlementCertsJob;
+import org.candlepin.service.ProductServiceAdapter;
+import org.candlepin.service.SubscriptionServiceAdapter;
+import org.candlepin.util.Util;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
+import org.quartz.JobDataMap;
+import org.quartz.JobDetail;
+import org.xnap.commons.i18n.I18n;
+
+import com.google.inject.Inject;
 
 /**
  * REST api gateway for the User object.
@@ -233,7 +234,22 @@ public class EntitlementResource {
                 "Entitlement with ID ''{0}'' could not be found.", dbid));
         }
 
-        String subscriptionId = ent.getPool().getSubscriptionId();
+        String subscriptionId = "";
+        Pool entPool = ent.getPool();
+        if (StringUtils.isBlank(entPool.getSourceStackId())) {
+            subscriptionId = entPool.getSubscriptionId();
+        }
+        else {
+            List<Entitlement> ents = entitlementCurator.findByStackId(
+                entPool.getSourceConsumer(),
+                entPool.getSourceStackId());
+            for (Entitlement e : ents) {
+                if (!StringUtils.isBlank(e.getPool().getSubscriptionId())) {
+                    subscriptionId = e.getPool().getSubscriptionId();
+                    break;
+                }
+            }
+        }
         SubscriptionResource subResource = new SubscriptionResource(subService,
             consumerCurator, i18n);
         return subResource.getSubCertAsPem(subscriptionId);
